@@ -33,9 +33,38 @@ func TestDirectoryCheckFalse(t *testing.T) {
 //Files to process
 func TestGetUsageFiles(t *testing.T) {
 	directory := "../test_data/"
-	expected := 3
+	expected := 1
 
 	actual, _ := getFileUsage(directory)
 
 	assert.Equal(t, expected, len(actual))
+}
+
+//TestDecodeFile decodes the file to a map
+func TestDecodeFile(t *testing.T) {
+	jsonData := `
+        {
+          "event_name": "ListApplications",
+          "count": 1
+        },
+        {
+          "event_name": "DescribeChangeSet",
+          "count": 1
+        }
+	`
+	testStub := jsonFileStub{inputData: jsonData}
+	testData := testStub.getData()
+	report, _ := generateReport(testData)
+
+	assert.NotNil(t, report)
+}
+
+//JSONFileDataStub
+type jsonFileStub struct {
+	inputData string
+	err       error
+}
+
+func (j jsonFileStub) getData() []byte {
+	return []byte(j.inputData)
 }

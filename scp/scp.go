@@ -1,6 +1,7 @@
 package scp
 
 import (
+	"encoding/json"
 	"os"
 )
 
@@ -36,4 +37,16 @@ func getFileUsage(directory string) ([]string, error) {
 	}
 
 	return filesList, nil
+}
+
+//generateReport will marshall the incoming json data
+func generateReport(jsonData []byte) (*interface{}, error) {
+	var v interface{}
+	err := json.Unmarshal(jsonData, &v)
+
+	if err != nil {
+		return nil, err
+	} else {
+		return &v, nil
+	}
 }
