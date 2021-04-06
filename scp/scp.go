@@ -5,6 +5,18 @@ import (
 	"os"
 )
 
+
+type Report struct {
+	Results struct{
+		RoleUsage []struct{
+			EventSource string `json:"event_source"`
+			EventName string `json:"event_name"`
+			Count int64 `json:"count"`
+		} `json:"role_usage"`
+	} `json:"results"`
+}
+
+
 // directoryCheck checks a directory for files to
 // process
 func directoryCheck(directory string) (bool, error) {
@@ -16,7 +28,7 @@ func directoryCheck(directory string) (bool, error) {
 }
 
 //getFileUsage returns the files to process from a directory
-func getFileUsage(directory string) ([]string, error) {
+func GetFileUsage(directory string) ([]string, error) {
 	var filesList []string
 
 	f, err := os.Open(directory)
@@ -40,8 +52,8 @@ func getFileUsage(directory string) ([]string, error) {
 }
 
 //generateReport will marshall the incoming json data
-func generateReport(jsonData []byte) (*interface{}, error) {
-	var v interface{}
+func GenerateReport(jsonData []byte) (*Report, error) {
+	var v Report
 	err := json.Unmarshal(jsonData, &v)
 
 	if err != nil {
