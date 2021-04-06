@@ -3,19 +3,20 @@ package scp
 import (
 	"encoding/json"
 	"os"
+	"errors"
 )
 
 
 type Report struct {
 	Results struct{
 		RoleUsage []struct{
-			EventSource string `json:"event_source"`
 			EventName string `json:"event_name"`
 			Count int64 `json:"count"`
 		} `json:"role_usage"`
 	} `json:"results"`
 }
 
+var ErrInvalidParameters = errors.New("input parameters missing")
 
 // directoryCheck checks a directory for files to
 // process
@@ -60,5 +61,21 @@ func GenerateReport(jsonData []byte) (*Report, error) {
 		return nil, err
 	} else {
 		return &v, nil
+	}
+}
+
+//Generates an allow list of all the api calls
+//That are above and equal to the threshold
+func GenerateAllowList (threshold int64, reportData *Report)(map[string]int64, error) {
+	if threshold > 0 {
+		allowList :=map[string]int64{}
+		for _, v:=range reportData.Results.RoleUsage {
+			if v.Count >= threshold {
+               allowList[v.EventName] = v.Count
+			}
+		}
+		return allowList, nil
+	}else {
+	   return nil,ErrInvalidParameters
 	}
 }

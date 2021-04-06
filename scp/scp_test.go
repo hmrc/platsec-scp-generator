@@ -44,12 +44,10 @@ func TestDecodeFile(t *testing.T) {
     "results": {
       "role_usage": [
         {
-          "event_source": "application-insights.amazonaws.com",
           "event_name": "ListApplications",
           "count": 1
         },
         {
-          "event_source": "cloudformation.amazonaws.com",
           "event_name": "DescribeChangeSet",
           "count": 1
         }
@@ -457,6 +455,18 @@ func TestDecodeFileError(t *testing.T) {
 	assert.Error(t, err)
 }
 
+//TestGenerateAllowListData tests that
+//API actions above a threshold are mapped to
+//A new data structure
+func TestGenerateAllowListData(t *testing.T) {
+	threshold := int64(50)
+    testData := getTestReport()
+    allowList, _ := GenerateAllowList(threshold, testData)
+
+    assert.NotNil(t, allowList)
+    assert.Equal(t, 3, len(allowList))
+}
+
 
 //JSONFileDataStub
 type jsonFileStub struct {
@@ -466,4 +476,95 @@ type jsonFileStub struct {
 
 func (j jsonFileStub) getData() []byte {
 	return []byte(j.inputData)
+}
+
+//getTestAllowListFilteredData returns a filtered data set
+func getTestAllowListFilteredData() map[string]int {
+	filteredData := map[string]int{
+		"LookupEvents":10,
+		"ListTags":1656,
+		"GetEventSelectors":12,
+		"BatchGetBuilds":223,
+		"GetLambdaFunctionRecommendations":2343,
+		"DescribeSecurityGroups":543,
+		"DescribeVpcs":48,
+		"ListStacks":348,
+	}
+
+	return filteredData
+}
+//getTestDenyListFilteredData returns a filtered data set
+func getTestDenyListFilteredData() map[string]int {
+	filteredData := map[string]int{
+		"LookupEvents":1,
+		"ListTags":1,
+		"GetEventSelectors":2,
+		"BatchGetBuilds":2,
+		"GetLambdaFunctionRecommendations":3,
+		"DescribeSecurityGroups":5,
+		"DescribeVpcs":8,
+		"ListStacks":3,
+	}
+
+	return filteredData
+}
+//getTestFilteredData returns a filtered data set
+func getTestFilteredData() map[string]int {
+	filteredData := map[string]int{
+		"LookupEvents":10,
+		"ListTags":1,
+		"GetEventSelectors":12,
+		"BatchGetBuilds":2,
+		"GetLambdaFunctionRecommendations":2343,
+		"DescribeSecurityGroups":543,
+		"DescribeVpcs":8,
+		"ListStacks":3,
+	}
+
+	return filteredData
+}
+
+//getTestReport returns a report in the
+//form of a serialised json document
+func getTestReport() *Report{
+	jsonData := `{
+    "results": {
+      "role_usage": [
+        {
+          "event_name": "ListApplications",
+          "count": 1
+        },
+        {
+          "event_name": "DescribeChangeSet",
+          "count": 13
+        },
+        {
+          "event_name": "GetInsightSelectors",
+          "count": 3424
+        },
+        {
+          "event_name": "GetTrailStatus",
+          "count": 3436
+        },
+        {
+          "event_name": "ListTags",
+          "count": 1
+        },
+        {
+          "event_name": "LookupEvents",
+          "count": 165
+        },
+        {
+          "event_name": "ListProjects",
+          "count": 10
+        }
+      ]
+    }
+}
+	`
+
+	testStub := jsonFileStub{inputData: jsonData}
+	testData := testStub.getData()
+	report, _ := GenerateReport(testData)
+	return report
 }
