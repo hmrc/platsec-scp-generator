@@ -459,12 +459,41 @@ func TestDecodeFileError(t *testing.T) {
 //API actions above a threshold are mapped to
 //A new data structure
 func TestGenerateAllowListData(t *testing.T) {
+    //TODO add table test for different thresholds
 	threshold := int64(50)
     testData := getTestReport()
     allowList, _ := GenerateAllowList(threshold, testData)
 
     assert.NotNil(t, allowList)
     assert.Equal(t, 3, len(allowList))
+}
+
+//TestGenerateAllowListGeneratesError tests for
+//An error being returned for zero and negative
+//Thresholds
+func TestGenerateAllowListGeneratesError (t *testing.T) {
+	testData := getTestReport()
+	cases :=[]struct{
+		threshold int64
+		report *Report
+		expected error
+	}{
+		{
+			threshold: 0,
+			report: testData,
+			expected: ErrInvalidParameters,
+		},
+		{
+			threshold: -1,
+			report: testData,
+			expected: ErrInvalidParameters,
+		},
+	}
+
+	for _,c := range cases {
+		_, err := GenerateAllowList(c.threshold,c.report)
+		assert.Error(t,err)
+	}
 }
 
 
