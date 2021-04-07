@@ -8,12 +8,22 @@ import (
 
 
 type Report struct {
-	Results struct{
-		RoleUsage []struct{
-			EventName string `json:"event_name"`
-			Count int64 `json:"count"`
-		} `json:"role_usage"`
-	} `json:"results"`
+		Account struct {
+			Identifier string `json:"identifier"`
+			AccountName string `json:"name"`
+		} `json:"account"`
+		Description string `json:"description"`
+		Partition struct {
+			Year string `json:"year"`
+			Month string `json:"month"`
+		}
+		Results struct{
+			Service string `json:"event_source"`
+			ServiceUsage []struct{
+				EventName string `json:"event_name"`
+				Count int64 `json:"count"`
+			} `json:"service_usage"`
+		} `json:"results"`
 }
 
 var ErrInvalidParameters = errors.New("input parameters missing")
@@ -52,9 +62,10 @@ func GetFileUsage(directory string) ([]string, error) {
 	return filesList, nil
 }
 
-//generateReport will marshall the incoming json data
-func GenerateReport(jsonData []byte) (*Report, error) {
-	var v Report
+//GenerateReport will marshall the incoming json data
+//from the scanner program into a struct.
+func GenerateReport(jsonData []byte) (*[]Report, error) {
+	var v []Report
 	err := json.Unmarshal(jsonData, &v)
 
 	if err != nil {
@@ -69,7 +80,7 @@ func GenerateReport(jsonData []byte) (*Report, error) {
 func GenerateAllowList (threshold int64, reportData *Report)(map[string]int64, error) {
 	if threshold > 0 {
 		allowList :=map[string]int64{}
-		for _, v:=range reportData.Results.RoleUsage {
+		for _, v:=range reportData.Results.ServiceUsage {
 			if v.Count >= threshold {
                allowList[v.EventName] = v.Count
 			}
