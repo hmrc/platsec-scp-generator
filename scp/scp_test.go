@@ -6,6 +6,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+//TestGenerateServiceName tests a service name can be
+//created from the incoming scanner event_source
+func TestGenerateServiceName(t *testing.T){
+	eventSource := "s3.amazonaws.com"
+    serviceName := GetServiceName(eventSource)
+    assert.Equal(t, "s3",serviceName)
+}
+
+//TestLoadScannerReport tests that a scanner report can
+//be loaded
+func TestLoadScannerReport(t *testing.T){
+	scannerFileName := "s3_scanner_report.json"
+	scannerFileData, _ := LoadScannerFile(scannerFileName)
+	assert.True(t, len(scannerFileData) > 0)
+}
+
+
 //TestDirectorCheckTrue tests directoryCheck returns true for
 //existing directory
 func TestDirectoryCheckTrue(t *testing.T) {
@@ -124,6 +141,26 @@ func TestGenerateAllowListGeneratesError (t *testing.T) {
 	}
 }
 
+//TestGenerateAllowSCP test that we can
+//generate an SCP from an Allow List
+func TestGenerateAllowSCP (t *testing.T) {
+	allowList := getTestAllowListFilteredData()
+	scpType := "Allow"
+	awsService := "s3"
+	generated := GenerateSCP(scpType,awsService, allowList)
+
+	assert.Equal(t, "2012-10-17",generated.Version)
+}
+
+//TestSaveSCP tests that we can save an SCP report
+func TestSaveSCP(t *testing.T) {
+    testSCP := getTestSCP("Allow", "S3")
+
+    SCPSaved, _ := SaveSCP(testSCP)
+
+    assert.True(t, SCPSaved)
+}
+
 //JSONFileDataStub
 type jsonFileStub struct {
 	inputData string
@@ -135,7 +172,7 @@ func (j jsonFileStub) getData() []byte {
 }
 
 //getScannerMessage returns a full scanner message
-func getCorruptedScannerMessage()(string) {
+func getCorruptedScannerMessage() string  {
 	scannerMessage := `
 [
    "rresults": {
@@ -189,7 +226,7 @@ func getCorruptedScannerMessage()(string) {
 	return scannerMessage
 }
 //getScannerMessage returns a full scanner message
-func getScannerMessage()(string) {
+func getScannerMessage() string  {
 	scannerMessage := `
 [
   {
@@ -253,8 +290,8 @@ func getScannerMessage()(string) {
     return scannerMessage
 }
 //getTestAllowListFilteredData returns a filtered data set
-func getTestAllowListFilteredData() map[string]int {
-	filteredData := map[string]int{
+func getTestAllowListFilteredData() map[string]int64 {
+	filteredData := map[string]int64{
 		"LookupEvents":10,
 		"ListTags":1656,
 		"GetEventSelectors":12,
@@ -306,4 +343,10 @@ func getTestReport() *[]Report{
 	testData := testStub.getData()
 	report, _ := GenerateReport(testData)
 	return report
+}
+
+func getTestSCP(scpType string, awsService string) SCP {
+	allowList := getTestAllowListFilteredData()
+	testSCP := GenerateSCP(scpType, awsService, allowList)
+	return testSCP
 }
