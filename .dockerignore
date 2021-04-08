@@ -1,0 +1,10 @@
+.git
+test_data
+awsscp
+LICENSE
+Make
+*.md
+**/*.xml
+**/*.json
+**/*.iml
+**/*.yaml
