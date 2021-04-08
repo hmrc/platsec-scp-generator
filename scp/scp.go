@@ -119,6 +119,22 @@ func GenerateAllowList (threshold int64, reportData *Report)(map[string]int64, e
 	}
 }
 
+//Generates a deny list of all the api calls
+//That are above and equal to the threshold
+func GenerateDenyList (threshold int64, reportData *Report)(map[string]int64, error) {
+	if threshold > 0 {
+		allowList :=map[string]int64{}
+		for _, v:=range reportData.Results.ServiceUsage {
+			if v.Count <= threshold {
+				allowList[v.EventName] = v.Count
+			}
+		}
+		return allowList, nil
+	}else {
+		return nil,ErrInvalidParameters
+	}
+}
+
 //GenerateSCP generates an SCP
 func GenerateSCP(scpType string, awsService string, permissionData map[string]int64) SCP{
 	scp  := SCP{}

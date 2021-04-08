@@ -54,6 +54,30 @@ func main() {
 		}else{
 			fmt.Printf("Report saved %v \n", result)
 		}
+	} else {
+		r := *scannerReport
+		n := &r[0].Results.Service
+		f := platsec.GetServiceName(*n)
+		testAccount := &r[0].Account.AccountName
+		fmt.Printf("***Debug Account Name: %s \n", *testAccount)
+		denyList, err :=platsec.GenerateDenyList(*d, &r[0])
+		if err != nil {
+			os.Exit(1)
+		}
+
+		for k,v := range denyList{
+			fmt.Printf("***Debug Key: %s Value: %v \n",k,v)
+		}
+
+		allowSCP :=platsec.GenerateSCP(*t,f,denyList)
+		result, err :=platsec.SaveSCP(allowSCP)
+
+		if err!=nil {
+			os.Exit(1)
+		}else{
+			fmt.Printf("Report saved %v \n", result)
+		}
+
 	}
 
 

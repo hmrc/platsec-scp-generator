@@ -4,8 +4,7 @@
   "Effect": "Allow",
   "Action": [
    "s3:ListBuckets",
-   "s3:GetObject",
-   "s3:GetBucketNotification"
+   "s3:GetObject"
   ]
  },
  "Resource": "*"

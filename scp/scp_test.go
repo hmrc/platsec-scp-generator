@@ -112,6 +112,42 @@ func TestGenerateAllowListData(t *testing.T) {
 	}
 }
 
+//TestGenerateDenyListData tests that
+//API actions above a threshold are mapped to
+//A new data structure
+func TestGenerateDenyListData(t *testing.T) {
+	testData := getTestReport()
+	r := *testData
+
+	cases :=[]struct{
+		threshold int64
+		report Report
+		expected int64
+	}{
+		{
+			threshold: 10,
+			report: r[0],
+			expected: 2,
+		},
+		{
+			threshold: 100,
+			report: r[0],
+			expected: 7,
+		},
+		{
+			threshold: 3000,
+			report: r[0],
+			expected: 10,
+		},
+	}
+
+	for _, c := range cases {
+		denyList, _ := GenerateDenyList(c.threshold, &c.report)
+		assert.NotNil(t, denyList)
+		assert.Equal(t, c.expected, int64(len(denyList)))
+	}
+}
+
 //TestGenerateAllowListGeneratesError tests for
 //An error being returned for zero and negative
 //Thresholds
@@ -310,10 +346,10 @@ func getTestDenyListFilteredData() map[string]int {
 		"LookupEvents":1,
 		"ListTags":1,
 		"GetEventSelectors":2,
-		"BatchGetBuilds":2,
+		"BatchGetBuilds":21,
 		"GetLambdaFunctionRecommendations":3,
 		"DescribeSecurityGroups":5,
-		"DescribeVpcs":8,
+		"DescribeVpcs":18,
 		"ListStacks":3,
 	}
 
