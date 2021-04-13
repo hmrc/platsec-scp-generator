@@ -233,6 +233,18 @@ func TestGetThreshold(t *testing.T) {
 	actual := testConfig.GetThreshold()
 	assert.Equal(t, 34,int(*actual))
 }
+
+//TestGetFileUsageReturnsErrorOpeningDirectory tests and emptyfile list
+//and Error are returned.
+func TestGetFileUsageReturnsErrorOpeningDirectory(t *testing.T) {
+	testDirectory := "./NonExistentDirectory"
+	fileList, err := GetFileUsage(testDirectory)
+
+	assert.Equal(t, 0, len(fileList))
+	assert.NotNil(t, err)
+}
+
+
 //JSONFileDataStub
 type jsonFileStub struct {
 	inputData string
