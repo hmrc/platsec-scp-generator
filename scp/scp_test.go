@@ -1,27 +1,39 @@
 package scp
 
 import (
-	"testing"
-
+	"fmt"
 	"github.com/stretchr/testify/assert"
+	"os"
+	"testing"
 )
+
+func TestMain(m *testing.M) {
+	rc := m.Run()
+	if rc == 0 && testing.CoverMode() != "" {
+		c := testing.Coverage()
+		if c < .99 {
+			fmt.Println("Tests passed but coverage failed at ", c)
+			rc = -1
+		}
+	}
+	os.Exit(rc)
+}
 
 //TestGenerateServiceName tests a service name can be
 //created from the incoming scanner event_source
-func TestGenerateServiceName(t *testing.T){
+func TestGenerateServiceName(t *testing.T) {
 	eventSource := "s3.amazonaws.com"
-    serviceName := GetServiceName(eventSource)
-    assert.Equal(t, "s3",serviceName)
+	serviceName := GetServiceName(eventSource)
+	assert.Equal(t, "s3", serviceName)
 }
 
 //TestLoadScannerReport tests that a scanner report can
 //be loaded
-func TestLoadScannerReport(t *testing.T){
+func TestLoadScannerReport(t *testing.T) {
 	scannerFileName := "s3_scanner_report.json"
 	scannerFileData, _ := LoadScannerFile(scannerFileName)
 	assert.True(t, len(scannerFileData) > 0)
 }
-
 
 //TestDirectorCheckTrue tests directoryCheck returns true for
 //existing directory
@@ -61,7 +73,7 @@ func TestDecodeFile(t *testing.T) {
 	testStub := jsonFileStub{inputData: jsonData}
 	testData := testStub.getData()
 	reports, _ := GenerateReport(testData)
-    report := *reports
+	report := *reports
 
 	assert.NotNil(t, report)
 	assert.Equal(t, 10, len(report[0].Results.ServiceUsage))
@@ -82,31 +94,32 @@ func TestDecodeFileError(t *testing.T) {
 func TestGenerateAllowListData(t *testing.T) {
 	testData := getTestReport()
 	r := *testData
+    apiFn := GreaterThan
 
-	cases :=[]struct{
+	cases := []struct {
 		threshold int64
-		report Report
-		expected int64
+		report    Report
+		expected  int64
 	}{
-	   {
-	   	threshold: 10,
-	   	report: r[0],
-	   	expected: 8,
-	   },
+		{
+			threshold: 10,
+			report:    r[0],
+			expected:  8,
+		},
 		{
 			threshold: 100,
-			report: r[0],
-			expected: 3,
+			report:    r[0],
+			expected:  3,
 		},
 		{
 			threshold: 3000,
-			report: r[0],
-			expected: 0,
+			report:    r[0],
+			expected:  0,
 		},
 	}
 
 	for _, c := range cases {
-		allowList, _ := GenerateAllowList(c.threshold, &c.report)
+		allowList, _ := GenerateList(c.threshold, &c.report, apiFn)
 		assert.NotNil(t, allowList)
 		assert.Equal(t, c.expected, int64(len(allowList)))
 	}
@@ -118,31 +131,32 @@ func TestGenerateAllowListData(t *testing.T) {
 func TestGenerateDenyListData(t *testing.T) {
 	testData := getTestReport()
 	r := *testData
+	apiFn := LessThan
 
-	cases :=[]struct{
+	cases := []struct {
 		threshold int64
-		report Report
-		expected int64
+		report    Report
+		expected  int64
 	}{
 		{
 			threshold: 10,
-			report: r[0],
-			expected: 2,
+			report:    r[0],
+			expected:  2,
 		},
 		{
 			threshold: 100,
-			report: r[0],
-			expected: 7,
+			report:    r[0],
+			expected:  7,
 		},
 		{
 			threshold: 3000,
-			report: r[0],
-			expected: 10,
+			report:    r[0],
+			expected:  10,
 		},
 	}
 
 	for _, c := range cases {
-		denyList, _ := GenerateDenyList(c.threshold, &c.report)
+		denyList, _ := GenerateList(c.threshold, &c.report, apiFn)
 		assert.NotNil(t, denyList)
 		assert.Equal(t, c.expected, int64(len(denyList)))
 	}
@@ -151,52 +165,74 @@ func TestGenerateDenyListData(t *testing.T) {
 //TestGenerateAllowListGeneratesError tests for
 //An error being returned for zero and negative
 //Thresholds
-func TestGenerateAllowListGeneratesError (t *testing.T) {
+func TestGenerateAllowListGeneratesError(t *testing.T) {
 	testReports := getTestReport()
 	testReport := *testReports
-	cases :=[]struct{
+	apiFn := GreaterThan
+
+	cases := []struct {
 		threshold int64
-		report Report
-		expected error
+		report    Report
+		expected  error
 	}{
 		{
 			threshold: 0,
-			report: testReport[0],
-			expected: ErrInvalidParameters,
+			report:    testReport[0],
+			expected:  ErrInvalidParameters,
 		},
 		{
 			threshold: -1,
-			report: testReport[0],
-			expected: ErrInvalidParameters,
+			report:    testReport[0],
+			expected:  ErrInvalidParameters,
 		},
 	}
 
-	for _,c := range cases {
-		_, err := GenerateAllowList(c.threshold,&c.report)
-		assert.Error(t,err)
+	for _, c := range cases {
+		_, err := GenerateList(c.threshold, &c.report, apiFn)
+		assert.Error(t, err)
 	}
 }
 
 //TestGenerateAllowSCP test that we can
 //generate an SCP from an Allow List
-func TestGenerateAllowSCP (t *testing.T) {
+func TestGenerateAllowSCP(t *testing.T) {
 	allowList := getTestAllowListFilteredData()
 	scpType := "Allow"
 	awsService := "s3"
-	generated := GenerateSCP(scpType,awsService, allowList)
+	generated := GenerateSCP(scpType, awsService, allowList)
 
-	assert.Equal(t, "2012-10-17",generated.Version)
+	assert.Equal(t, "2012-10-17", generated.Version)
 }
 
 //TestSaveSCP tests that we can save an SCP report
 func TestSaveSCP(t *testing.T) {
-    testSCP := getTestSCP("Allow", "S3")
+	testSCP := getTestSCP("Allow", "S3")
 
-    SCPSaved, _ := SaveSCP(testSCP)
+	SCPSaved := SaveSCP(testSCP)
 
-    assert.True(t, SCPSaved)
+	assert.Nil(t, SCPSaved)
 }
 
+//TestGetSCPType test that the SCPType is returned
+func TestGetSCPType(t *testing.T) {
+	testConfig := SCPConfig{SCPType:"Allow",ScannerFile: "TestFile", Threshold: 34}
+	actual := testConfig.GetSCPType()
+	assert.Equal(t, "Allow",*actual)
+}
+
+//TestGetScannerFilename test that the SCPType is returned
+func TestGetScannerFilename(t *testing.T) {
+	testConfig := SCPConfig{SCPType:"Allow",ScannerFile: "TestFile", Threshold: 34}
+	actual := testConfig.GetScannerFilename()
+	assert.Equal(t, "TestFile",*actual)
+}
+
+//TestGetThreshold test that the SCPType is returned
+func TestGetThreshold(t *testing.T) {
+	testConfig := SCPConfig{SCPType:"Allow",ScannerFile: "TestFile", Threshold: 34}
+	actual := testConfig.GetThreshold()
+	assert.Equal(t, 34,int(*actual))
+}
 //JSONFileDataStub
 type jsonFileStub struct {
 	inputData string
@@ -208,7 +244,7 @@ func (j jsonFileStub) getData() []byte {
 }
 
 //getScannerMessage returns a full scanner message
-func getCorruptedScannerMessage() string  {
+func getCorruptedScannerMessage() string {
 	scannerMessage := `
 [
    "rresults": {
@@ -261,8 +297,9 @@ func getCorruptedScannerMessage() string  {
 `
 	return scannerMessage
 }
+
 //getScannerMessage returns a full scanner message
-func getScannerMessage() string  {
+func getScannerMessage() string {
 	scannerMessage := `
 [
   {
@@ -323,49 +360,52 @@ func getScannerMessage() string  {
   }
 ]
 `
-    return scannerMessage
+	return scannerMessage
 }
+
 //getTestAllowListFilteredData returns a filtered data set
 func getTestAllowListFilteredData() map[string]int64 {
 	filteredData := map[string]int64{
-		"LookupEvents":10,
-		"ListTags":1656,
-		"GetEventSelectors":12,
-		"BatchGetBuilds":223,
-		"GetLambdaFunctionRecommendations":2343,
-		"DescribeSecurityGroups":543,
-		"DescribeVpcs":48,
-		"ListStacks":348,
+		"LookupEvents":                     10,
+		"ListTags":                         1656,
+		"GetEventSelectors":                12,
+		"BatchGetBuilds":                   223,
+		"GetLambdaFunctionRecommendations": 2343,
+		"DescribeSecurityGroups":           543,
+		"DescribeVpcs":                     48,
+		"ListStacks":                       348,
 	}
 
 	return filteredData
 }
+
 //getTestDenyListFilteredData returns a filtered data set
 func getTestDenyListFilteredData() map[string]int {
 	filteredData := map[string]int{
-		"LookupEvents":1,
-		"ListTags":1,
-		"GetEventSelectors":2,
-		"BatchGetBuilds":21,
-		"GetLambdaFunctionRecommendations":3,
-		"DescribeSecurityGroups":5,
-		"DescribeVpcs":18,
-		"ListStacks":3,
+		"LookupEvents":                     1,
+		"ListTags":                         1,
+		"GetEventSelectors":                2,
+		"BatchGetBuilds":                   21,
+		"GetLambdaFunctionRecommendations": 3,
+		"DescribeSecurityGroups":           5,
+		"DescribeVpcs":                     18,
+		"ListStacks":                       3,
 	}
 
 	return filteredData
 }
+
 //getTestFilteredData returns a filtered data set
 func getTestFilteredData() map[string]int {
 	filteredData := map[string]int{
-		"LookupEvents":10,
-		"ListTags":1,
-		"GetEventSelectors":12,
-		"BatchGetBuilds":2,
-		"GetLambdaFunctionRecommendations":2343,
-		"DescribeSecurityGroups":543,
-		"DescribeVpcs":8,
-		"ListStacks":3,
+		"LookupEvents":                     10,
+		"ListTags":                         1,
+		"GetEventSelectors":                12,
+		"BatchGetBuilds":                   2,
+		"GetLambdaFunctionRecommendations": 2343,
+		"DescribeSecurityGroups":           543,
+		"DescribeVpcs":                     8,
+		"ListStacks":                       3,
 	}
 
 	return filteredData
@@ -373,7 +413,7 @@ func getTestFilteredData() map[string]int {
 
 //getTestReport returns a report in the
 //form of a serialised json document
-func getTestReport() *[]Report{
+func getTestReport() *[]Report {
 	jsonData := getScannerMessage()
 	testStub := jsonFileStub{inputData: jsonData}
 	testData := testStub.getData()

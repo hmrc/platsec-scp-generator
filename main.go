@@ -1,84 +1,73 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"flag"
-	"github.com/platsec-scp-generator/utilities"
+	"fmt"
 	platsec "github.com/platsec-scp-generator/scp"
+	"os"
+)
+
+const (
+	exitFail = 1
 )
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Print(err)
+		os.Exit(exitFail)
+	}
+}
 
+//run is an abstraction function that allows
+//us to test codebase.
+func run() error {
 	//Get Config
-	c := utilities.SCPConfig{}
+	c := platsec.SCPConfig{}
 	c.Setup()
 	flag.Parse()
 
-    f := c.GetScannerFilename()
-    t := c.GetSCPType()
-    d := c.GetThreshold()
+	f := c.GetScannerFilename()
+	t := c.GetSCPType()
+	d := c.GetThreshold()
 
-    //Load the raw json data
+	//Load the raw json data
 	scannerData, err := platsec.LoadScannerFile(*f)
 
 	if err != nil {
-		os.Exit(1)
+		return err
 	}
 
-	scannerReport, err :=platsec.GenerateReport(scannerData)
+	scannerReport, err := platsec.GenerateReport(scannerData)
 	if err != nil {
-		os.Exit(1)
+		return err
+	}
+    type fnEval = func(int64, int64) bool
+
+	var apiFn fnEval
+
+	r := *scannerReport
+	n := &r[0].Results.Service
+	s := platsec.GetServiceName(*n)
+
+	switch *t {
+	case "Allow":
+		apiFn = platsec.GreaterThan
+	case "Deny":
+		apiFn = platsec.LessThan
 	}
 
-	if *t == "Allow" {
-		r := *scannerReport
-		n := &r[0].Results.Service
-		f := platsec.GetServiceName(*n)
-        testAccount := &r[0].Account.AccountName
-		fmt.Printf("***Debug Account Name: %s \n", *testAccount)
-		allowList, err :=platsec.GenerateAllowList(*d, &r[0])
-		if err != nil {
-			os.Exit(1)
-		}
+	listResults, err := platsec.GenerateList(*d,&r[0],apiFn)
 
-		for k,v := range allowList{
-			fmt.Printf("***Debug Key: %s Value: %v \n",k,v)
-		}
-
-		allowSCP :=platsec.GenerateSCP(*t,f,allowList)
-		result, err :=platsec.SaveSCP(allowSCP)
-
-		if err!=nil {
-			os.Exit(1)
-		}else{
-			fmt.Printf("Report saved %v \n", result)
-		}
-	} else {
-		r := *scannerReport
-		n := &r[0].Results.Service
-		f := platsec.GetServiceName(*n)
-		testAccount := &r[0].Account.AccountName
-		fmt.Printf("***Debug Account Name: %s \n", *testAccount)
-		denyList, err :=platsec.GenerateDenyList(*d, &r[0])
-		if err != nil {
-			os.Exit(1)
-		}
-
-		for k,v := range denyList{
-			fmt.Printf("***Debug Key: %s Value: %v \n",k,v)
-		}
-
-		allowSCP :=platsec.GenerateSCP(*t,f,denyList)
-		result, err :=platsec.SaveSCP(allowSCP)
-
-		if err!=nil {
-			os.Exit(1)
-		}else{
-			fmt.Printf("Report saved %v \n", result)
-		}
-
+	if err != nil {
+		return err
 	}
 
+	SCPfile := platsec.GenerateSCP(*t, s, listResults)
+	err = platsec.SaveSCP(SCPfile)
 
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
