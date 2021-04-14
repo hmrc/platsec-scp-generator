@@ -23,16 +23,24 @@ func TestMain(m *testing.M) {
 //created from the incoming scanner event_source
 func TestGenerateServiceName(t *testing.T) {
 	eventSource := "s3.amazonaws.com"
-	serviceName := GetServiceName(eventSource)
+	serviceName := ServiceName(eventSource)
 	assert.Equal(t, "s3", serviceName)
 }
 
 //TestLoadScannerReport tests that a scanner report can
 //be loaded
 func TestLoadScannerReport(t *testing.T) {
-	scannerFileName := "s3_scanner_report.json"
-	scannerFileData, _ := LoadScannerFile(scannerFileName)
-	assert.True(t, len(scannerFileData) > 0)
+	scannerFileName := "./testdata/s3_scanner_report.json"
+	scannerFileData, err := LoadScannerFile(scannerFileName)
+
+	if err != nil {
+		t.Fatalf("cannot read: %s, got %v",
+			scannerFileName, err)
+	}
+
+	if len(scannerFileData) <= 0 {
+		t.Fatalf("fixture %s is empty file", scannerFileData)
+	}
 }
 
 //TestDirectorCheckTrue tests directoryCheck returns true for
@@ -54,17 +62,6 @@ func TestDirectoryCheckFalse(t *testing.T) {
 
 	assert.False(t, expected, actual)
 
-}
-
-//TestGetUsageFiles checks that getUsageFiles returns
-//Files to process
-func TestGetUsageFiles(t *testing.T) {
-	directory := "../test_data/"
-	expected := 1
-
-	actual, _ := GetFileUsage(directory)
-
-	assert.Equal(t, expected, len(actual))
 }
 
 //TestDecodeFile decodes the file to a map
@@ -216,39 +213,100 @@ func TestSaveSCP(t *testing.T) {
 //TestGetSCPType test that the SCPType is returned
 func TestGetSCPType(t *testing.T) {
 	testConfig := SCPConfig{SCPType:"Allow",ScannerFile: "TestFile", Threshold: 34}
-	actual := testConfig.GetSCPType()
+	actual := testConfig.ServiceType()
 	assert.Equal(t, "Allow",*actual)
 }
 
 //TestGetScannerFilename test that the SCPType is returned
 func TestGetScannerFilename(t *testing.T) {
 	testConfig := SCPConfig{SCPType:"Allow",ScannerFile: "TestFile", Threshold: 34}
-	actual := testConfig.GetScannerFilename()
+	actual := testConfig.ScannerFilename()
 	assert.Equal(t, "TestFile",*actual)
 }
 
 //TestGetThreshold test that the SCPType is returned
 func TestGetThreshold(t *testing.T) {
 	testConfig := SCPConfig{SCPType:"Allow",ScannerFile: "TestFile", Threshold: 34}
-	actual := testConfig.GetThreshold()
+	actual := testConfig.ThresholdLimit()
 	assert.Equal(t, 34,int(*actual))
 }
 
-//TestGetFileUsageReturnsErrorOpeningDirectory tests and emptyfile list
-//and Error are returned.
-func TestGetFileUsageReturnsErrorOpeningDirectory(t *testing.T) {
-	testDirectory := "./NonExistentDirectory"
-	fileList, err := GetFileUsage(testDirectory)
+//TestLoadScannerFileReturnsError test that an error is
+//returned
+func TestLoadScannerFileReturnsError(t *testing.T) {
+	testFile := "testFile"
+	fileData, err := LoadScannerFile(testFile)
 
-	assert.Equal(t, 0, len(fileList))
 	assert.NotNil(t, err)
+	assert.Nil(t, fileData)
 }
 
+//TestSCPTypeParameterPass tests that we do not
+//fail when we pass the correct parameter types
+func TestSCPTypeParameterPass (t *testing.T) {
+	cases := []struct {
+		value string
+		expected bool
+	}{
+		{
+			value: "Allow",
+			expected: true,
+		},
+		{
+			value: "Deny",
+			expected: true,
+		},
+		{
+			value: "deny",
+			expected: true,
+		},
+		{
+			value: "allow",
+			expected: true,
+		},
+	}
+
+	for _, c := range cases {
+		actual := CheckSCPParameter(c.value)
+		assert.Equal(t, c.expected,actual)
+	}
+}
+
+
+//TestSCPTypeParameterReturnsFalse tests that we do not
+//fail when we pass the correct parameter types
+func TestSCPTypeParameterReturnsFalse (t *testing.T) {
+	cases := []struct {
+		value string
+		expected bool
+	}{
+		{
+			value: "Allowime",
+			expected: false,
+		},
+		{
+			value: "Denyme",
+			expected: false,
+		},
+		{
+			value: "denyme",
+			expected: false,
+		},
+		{
+			value: "allowme",
+			expected: false,
+		},
+	}
+
+	for _, c := range cases {
+		actual := CheckSCPParameter(c.value)
+		assert.Equal(t, c.expected,actual)
+	}
+}
 
 //JSONFileDataStub
 type jsonFileStub struct {
 	inputData string
-	err       error
 }
 
 func (j jsonFileStub) getData() []byte {
@@ -386,38 +444,6 @@ func getTestAllowListFilteredData() map[string]int64 {
 		"DescribeSecurityGroups":           543,
 		"DescribeVpcs":                     48,
 		"ListStacks":                       348,
-	}
-
-	return filteredData
-}
-
-//getTestDenyListFilteredData returns a filtered data set
-func getTestDenyListFilteredData() map[string]int {
-	filteredData := map[string]int{
-		"LookupEvents":                     1,
-		"ListTags":                         1,
-		"GetEventSelectors":                2,
-		"BatchGetBuilds":                   21,
-		"GetLambdaFunctionRecommendations": 3,
-		"DescribeSecurityGroups":           5,
-		"DescribeVpcs":                     18,
-		"ListStacks":                       3,
-	}
-
-	return filteredData
-}
-
-//getTestFilteredData returns a filtered data set
-func getTestFilteredData() map[string]int {
-	filteredData := map[string]int{
-		"LookupEvents":                     10,
-		"ListTags":                         1,
-		"GetEventSelectors":                12,
-		"BatchGetBuilds":                   2,
-		"GetLambdaFunctionRecommendations": 2343,
-		"DescribeSecurityGroups":           543,
-		"DescribeVpcs":                     8,
-		"ListStacks":                       3,
 	}
 
 	return filteredData

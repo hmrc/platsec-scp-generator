@@ -13,8 +13,7 @@ const (
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Print(err)
-		os.Exit(exitFail)
+		fmt.Fprintln(os.Stderr, exitFail)
 	}
 }
 
@@ -26,10 +25,13 @@ func run() error {
 	c.Setup()
 	flag.Parse()
 
-	f := c.GetScannerFilename()
-	t := c.GetSCPType()
-	d := c.GetThreshold()
+	f := c.ScannerFilename()
+	t := c.ServiceType()
+	d := c.ThresholdLimit()
 
+	if !platsec.CheckSCPParameter(*t) {
+		return platsec.ErrInvalidSCPType
+	}
 	//Load the raw json data
 	scannerData, err := platsec.LoadScannerFile(*f)
 
@@ -47,7 +49,7 @@ func run() error {
 
 	r := *scannerReport
 	n := &r[0].Results.Service
-	s := platsec.GetServiceName(*n)
+	s := platsec.ServiceName(*n)
 
 	switch *t {
 	case "Allow":

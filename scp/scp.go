@@ -24,17 +24,17 @@ func (s *SCPConfig) Setup() {
 	flag.Int64Var(&s.Threshold, "threshold", 10, "decision threshold")
 }
 
-//GetSCPType returns the SCP Type parameter
-func (s *SCPConfig) GetSCPType() *string {
+//SCPType returns the SCP Type parameter
+func (s *SCPConfig) ServiceType() *string {
 	return &s.SCPType
 }
 
 //GetScannerFilename returns the File
-func (s *SCPConfig) GetScannerFilename() *string {
+func (s *SCPConfig) ScannerFilename() *string {
 	return &s.ScannerFile
 }
 
-func (s *SCPConfig) GetThreshold() *int64 {
+func (s *SCPConfig) ThresholdLimit() *int64 {
 	return &s.Threshold
 }
 
@@ -69,10 +69,12 @@ type SCP struct {
 }
 
 var ErrInvalidParameters = errors.New("input parameters missing")
+var ErrInvalidThreshold = errors.New("threshold limit must be greater than zero")
+var ErrInvalidSCPType = errors.New("scp type must be Allow or Deny")
 
-// getServiceName returns a formatted service name
+// ServiceName returns a formatted service name
 // from event_source data
-func GetServiceName(eventSource string) string {
+func ServiceName(eventSource string) string {
 	s := strings.Split(eventSource, ".")
 	return s[0]
 }
@@ -96,30 +98,6 @@ func directoryCheck(directory string) (bool, error) {
 	return true, nil
 }
 
-//getFileUsage returns the files to process from a directory
-func GetFileUsage(directory string) ([]string, error) {
-	var filesList []string
-
-	f, err := os.Open(directory)
-
-	if err != nil {
-		return filesList, err
-	}
-
-	defer f.Close()
-
-	fileInfo, err := f.ReadDir(-1)
-	if err != nil {
-		return filesList, err
-	}
-
-	for _, file := range fileInfo {
-		filesList = append(filesList, file.Name())
-	}
-
-	return filesList, nil
-}
-
 //GenerateReport will marshall the incoming json data
 //from the scanner program into a struct.
 func GenerateReport(jsonData []byte) (*[]Report, error) {
@@ -136,18 +114,19 @@ func GenerateReport(jsonData []byte) (*[]Report, error) {
 
 //GenerateList a list of all the api calls
 //That are above and equal to the threshold
-func GenerateList(threshold int64, reportData *Report, apiEval func(int64,int64)bool) (map[string]int64, error) {
-	if threshold > 0 {
-		allowList := map[string]int64{}
-		for _, v := range reportData.Results.ServiceUsage {
-			if apiEval(v.Count, threshold) {
-				allowList[v.EventName] = v.Count
-			}
-		}
-		return allowList, nil
-	} else {
-		return nil, ErrInvalidParameters
+func GenerateList(threshold int64, reportData *Report, apiEval func(int64, int64) bool) (map[string]int64, error) {
+
+	if threshold <= 0 {
+		return nil, ErrInvalidThreshold
 	}
+
+	allowList := map[string]int64{}
+	for _, v := range reportData.Results.ServiceUsage {
+		if apiEval(v.Count, threshold) {
+			allowList[v.EventName] = v.Count
+		}
+	}
+	return allowList, nil
 }
 
 //GreaterThan evaluates the value
@@ -168,11 +147,9 @@ func LessThan(value int64, threshold int64) bool {
 	return isLessThan
 }
 
-
-
 //GenerateSCP generates an SCP
-func GenerateSCP(scpType string, awsService string, permissionData map[string]int64) SCP {
-	scp := SCP{}
+func GenerateSCP(scpType string, awsService string, permissionData map[string]int64) (scp SCP) {
+	scp = SCP{}
 	scp.Version = "2012-10-17"
 	for k := range permissionData {
 		p := awsService + ":" + k
@@ -184,8 +161,21 @@ func GenerateSCP(scpType string, awsService string, permissionData map[string]in
 }
 
 //SaveSCP saves the scp file
-func SaveSCP(scp SCP) error{
+func SaveSCP(scp SCP) error {
 	jsonData, _ := json.MarshalIndent(scp, "", " ")
 	err := ioutil.WriteFile("testSCP.json", jsonData, 0644)
 	return err
+}
+
+//CheckSCPParameter checks that SCP parameter was
+//Entered with correct value
+func CheckSCPParameter(scpType string) bool{
+	scpCheck := false
+
+	s := strings.ToLower(scpType)
+	if s == "allow" || s == "deny" {
+		scpCheck = true
+	}
+
+	return scpCheck
 }
