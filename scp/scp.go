@@ -24,12 +24,12 @@ func (s *SCPConfig) Setup() {
 	flag.Int64Var(&s.Threshold, "threshold", 10, "decision threshold")
 }
 
-//SCPType returns the SCP Type parameter
+//ServiceType returns the SCP Type parameter
 func (s *SCPConfig) ServiceType() *string {
 	return &s.SCPType
 }
 
-//GetScannerFilename returns the File
+//ScannerFilename returns the File
 func (s *SCPConfig) ScannerFilename() *string {
 	return &s.ScannerFile
 }

@@ -1,6 +1,7 @@
 FROM golang:1.16
-WORKDIR /github.com/platsec-scp-generator/
-COPY ./ ./
-RUN go build -o awsscp main.go
-
+ARG PWD
+WORKDIR $PWD
+COPY go.mod go.sum $PWD/
+RUN go version && \
+    go mod download
 

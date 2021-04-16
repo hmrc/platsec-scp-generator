@@ -1,10 +1,29 @@
-DOCKER_RUN = docker run --interactive -rm platsecscpgenerator:local
+DOCKER_RUN = docker run \
+	--interactive \
+	--rm \
+	--volume "${PWD}:${PWD}" \
+	--workdir "${PWD}" \
+	platsecscpgenerator:local
 
-format:
-	go fmt ./scp
-
+.PHONY: build
 build:
-	go build -o	awsscp main.go
+	@docker build \
+		--build-arg PWD \
+		--tag platsecscpgenerator:local \
+		. > /dev/null
 
-test:
-	go test -cover -v ./scp
+.PHONY: format
+format: build
+	@$(DOCKER_RUN) go fmt ./scp
+
+.PHONY: test
+test: build
+	@$(DOCKER_RUN) go test -cover -v ./scp
+
+.PHONY: lint
+lint:
+	@docker run\
+ 		--rm \
+		--volume "${PWD}:${PWD}" \
+    	--workdir "${PWD}" \
+        golangci/golangci-lint:v1.39.0 golangci-lint run
