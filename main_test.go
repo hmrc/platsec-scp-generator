@@ -1,4 +1,4 @@
-package scp
+package main
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 //created from the incoming scanner event_source
 func TestGenerateServiceName(t *testing.T) {
 	eventSource := "s3.amazonaws.com"
-	serviceName := ServiceName(eventSource)
+	serviceName := serviceName(eventSource)
 	assert.Equal(t, "s3", serviceName)
 }
 
@@ -31,7 +31,7 @@ func TestGenerateServiceName(t *testing.T) {
 //be loaded
 func TestLoadScannerReport(t *testing.T) {
 	scannerFileName := "./testdata/s3_scanner_report.json"
-	scannerFileData, err := LoadScannerFile(scannerFileName)
+	scannerFileData, err := loadScannerFile(scannerFileName)
 
 	if err != nil {
 		t.Fatalf("cannot read: %s, got %v",
@@ -69,7 +69,7 @@ func TestDecodeFile(t *testing.T) {
 	jsonData := getScannerMessage()
 	testStub := jsonFileStub{inputData: jsonData}
 	testData := testStub.getData()
-	reports, _ := GenerateReport(testData)
+	reports, _ := generateReport(testData)
 	report := *reports
 
 	assert.NotNil(t, report)
@@ -81,7 +81,7 @@ func TestDecodeFileError(t *testing.T) {
 	jsonData := getCorruptedScannerMessage()
 	testStub := jsonFileStub{inputData: jsonData}
 	testData := testStub.getData()
-	_, err := GenerateReport(testData)
+	_, err := generateReport(testData)
 	assert.Error(t, err)
 }
 
@@ -91,7 +91,7 @@ func TestDecodeFileError(t *testing.T) {
 func TestGenerateAllowListData(t *testing.T) {
 	testData := getTestReport()
 	r := *testData
-    apiFn := GreaterThan
+	apiFn := greaterThan
 
 	cases := []struct {
 		threshold int64
@@ -116,7 +116,7 @@ func TestGenerateAllowListData(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		allowList, _ := GenerateList(c.threshold, &c.report, apiFn)
+		allowList, _ := generateList(c.threshold, &c.report, apiFn)
 		assert.NotNil(t, allowList)
 		assert.Equal(t, c.expected, int64(len(allowList)))
 	}
@@ -128,7 +128,7 @@ func TestGenerateAllowListData(t *testing.T) {
 func TestGenerateDenyListData(t *testing.T) {
 	testData := getTestReport()
 	r := *testData
-	apiFn := LessThan
+	apiFn := lessThan
 
 	cases := []struct {
 		threshold int64
@@ -153,7 +153,7 @@ func TestGenerateDenyListData(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		denyList, _ := GenerateList(c.threshold, &c.report, apiFn)
+		denyList, _ := generateList(c.threshold, &c.report, apiFn)
 		assert.NotNil(t, denyList)
 		assert.Equal(t, c.expected, int64(len(denyList)))
 	}
@@ -165,7 +165,7 @@ func TestGenerateDenyListData(t *testing.T) {
 func TestGenerateAllowListGeneratesError(t *testing.T) {
 	testReports := getTestReport()
 	testReport := *testReports
-	apiFn := GreaterThan
+	apiFn := greaterThan
 
 	cases := []struct {
 		threshold int64
@@ -185,7 +185,7 @@ func TestGenerateAllowListGeneratesError(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		_, err := GenerateList(c.threshold, &c.report, apiFn)
+		_, err := generateList(c.threshold, &c.report, apiFn)
 		assert.Error(t, err)
 	}
 }
@@ -196,7 +196,7 @@ func TestGenerateAllowSCP(t *testing.T) {
 	allowList := getTestAllowListFilteredData()
 	scpType := "Allow"
 	awsService := "s3"
-	generated := GenerateSCP(scpType, awsService, allowList)
+	generated := generateSCP(scpType, awsService, allowList)
 
 	assert.Equal(t, "2012-10-17", generated.Version)
 }
@@ -205,37 +205,37 @@ func TestGenerateAllowSCP(t *testing.T) {
 func TestSaveSCP(t *testing.T) {
 	testSCP := getTestSCP("Allow", "S3")
 
-	SCPSaved := SaveSCP(testSCP)
+	SCPSaved := saveSCP(testSCP)
 
 	assert.Nil(t, SCPSaved)
 }
 
 //TestGetSCPType test that the SCPType is returned
 func TestGetSCPType(t *testing.T) {
-	testConfig := SCPConfig{SCPType:"Allow",ScannerFile: "TestFile", Threshold: 34}
-	actual := testConfig.ServiceType()
-	assert.Equal(t, "Allow",*actual)
+	testConfig := SCPConfig{SCPType: "Allow", ScannerFile: "TestFile", Threshold: 34}
+	actual := testConfig.serviceType()
+	assert.Equal(t, "Allow", *actual)
 }
 
 //TestGetScannerFilename test that the SCPType is returned
 func TestGetScannerFilename(t *testing.T) {
-	testConfig := SCPConfig{SCPType:"Allow",ScannerFile: "TestFile", Threshold: 34}
-	actual := testConfig.ScannerFilename()
-	assert.Equal(t, "TestFile",*actual)
+	testConfig := SCPConfig{SCPType: "Allow", ScannerFile: "TestFile", Threshold: 34}
+	actual := testConfig.scannerFilename()
+	assert.Equal(t, "TestFile", *actual)
 }
 
 //TestGetThreshold test that the SCPType is returned
 func TestGetThreshold(t *testing.T) {
-	testConfig := SCPConfig{SCPType:"Allow",ScannerFile: "TestFile", Threshold: 34}
-	actual := testConfig.ThresholdLimit()
-	assert.Equal(t, 34,int(*actual))
+	testConfig := SCPConfig{SCPType: "Allow", ScannerFile: "TestFile", Threshold: 34}
+	actual := testConfig.thresholdLimit()
+	assert.Equal(t, 34, int(*actual))
 }
 
 //TestLoadScannerFileReturnsError test that an error is
 //returned
 func TestLoadScannerFileReturnsError(t *testing.T) {
 	testFile := "testFile"
-	fileData, err := LoadScannerFile(testFile)
+	fileData, err := loadScannerFile(testFile)
 
 	assert.NotNil(t, err)
 	assert.Nil(t, fileData)
@@ -243,64 +243,63 @@ func TestLoadScannerFileReturnsError(t *testing.T) {
 
 //TestSCPTypeParameterPass tests that we do not
 //fail when we pass the correct parameter types
-func TestSCPTypeParameterPass (t *testing.T) {
+func TestSCPTypeParameterPass(t *testing.T) {
 	cases := []struct {
-		value string
+		value    string
 		expected bool
 	}{
 		{
-			value: "Allow",
+			value:    "Allow",
 			expected: true,
 		},
 		{
-			value: "Deny",
+			value:    "Deny",
 			expected: true,
 		},
 		{
-			value: "deny",
+			value:    "deny",
 			expected: true,
 		},
 		{
-			value: "allow",
+			value:    "allow",
 			expected: true,
 		},
 	}
 
 	for _, c := range cases {
-		actual := CheckSCPParameter(c.value)
-		assert.Equal(t, c.expected,actual)
+		actual := checkSCPParameter(c.value)
+		assert.Equal(t, c.expected, actual)
 	}
 }
 
-
 //TestSCPTypeParameterReturnsFalse tests that we do not
 //fail when we pass the correct parameter types
-func TestSCPTypeParameterReturnsFalse (t *testing.T) {
+func TestSCPTypeParameterReturnsFalse(t *testing.T) {
 	cases := []struct {
-		value string
+		value    string
 		expected bool
 	}{
 		{
-			value: "Allowime",
+			value:    "Allowime",
 			expected: false,
 		},
 		{
-			value: "Denyme",
+			value:    "Denyme",
 			expected: false,
 		},
 		{
-			value: "denyme",
+			value:    "denyme",
 			expected: false,
 		},
 		{
-			value: "allowme",
+			value:    "allowme",
 			expected: false,
 		},
 	}
 
 	for _, c := range cases {
-		actual := CheckSCPParameter(c.value)
-		assert.Equal(t, c.expected,actual)
+		actual := checkSCPParameter(c.value)
+		assert.Equal(t, c.expected, actual)
 	}
 }
 
@@ -455,12 +454,12 @@ func getTestReport() *[]Report {
 	jsonData := getScannerMessage()
 	testStub := jsonFileStub{inputData: jsonData}
 	testData := testStub.getData()
-	report, _ := GenerateReport(testData)
+	report, _ := generateReport(testData)
 	return report
 }
 
 func getTestSCP(scpType string, awsService string) SCP {
 	allowList := getTestAllowListFilteredData()
-	testSCP := GenerateSCP(scpType, awsService, allowList)
+	testSCP := generateSCP(scpType, awsService, allowList)
 	return testSCP
 }
