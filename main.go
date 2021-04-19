@@ -13,17 +13,90 @@ import (
 const (
 	exitFail = 1
 )
-
-func main() {
-	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, exitFail)
-	}
+type SCPRun struct {
+	scannerFilename string
+	serviceType string
+	serviceName string
+	thresholdLimit int64
+	usageData []byte
+	reports *[]Report
+	permissionSet map[string]int64
+	scp SCP
 }
 
-//run is an abstraction function that allows
-//us to test codebase.
-func run() error {
-	//Get Config
+//Package level vars to allow patch testing
+type fileLoader func (filename string)([]byte,error)
+var loadFile fileLoader = ioutil.ReadFile
+
+//validateService checks that the correct apply or
+//deny value was supplied.
+func (s *SCPRun) validateService() (bool, error) {
+	if !checkSCPParameter(s.serviceType){
+		return false, ErrInvalidSCPType
+	}
+	return true, nil
+}
+
+func (s *SCPRun) getUsageData()error{
+	usageData, err :=loadScannerFile(s.scannerFilename)
+	if err != nil {
+		return err
+	}
+	s.usageData = usageData
+	return nil
+}
+
+func (s *SCPRun) getReport() error{
+ 	r, err := generateReport(s.usageData)
+ 	if err != nil {
+ 		return err
+ 	}
+ 	s.reports = r
+ 	return nil
+}
+
+func (s *SCPRun) createPermissions() error{
+	type fnEval = func(int64, int64) bool
+	var apiFn fnEval
+
+	switch s.serviceType {
+	case "Allow":
+		apiFn = greaterThan
+	case "Deny":
+		apiFn = lessThan
+	}
+
+	r := *s.reports
+	permissionSet, err := generateList(s.thresholdLimit,&r[0],apiFn)
+	if err != nil{
+		return err
+	}
+	s.permissionSet = permissionSet
+	return nil
+}
+
+func (s *SCPRun) formatServiceName() error {
+	r := *s.reports
+	u := &r[0].Results.Service
+
+	s.serviceName = serviceName(*u)
+	return nil
+}
+
+func (s *SCPRun) createSCP() error {
+	s.scp =generateSCP(s.serviceType,s.serviceName,s.permissionSet)
+	return nil
+}
+
+func (s *SCPRun) saveSCP() error {
+	err := saveSCP(s.scp)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func main() {
 	c := SCPConfig{}
 	c.setup()
 	flag.Parse()
@@ -32,50 +105,60 @@ func run() error {
 	t := c.serviceType()
 	d := c.thresholdLimit()
 
-	if !checkSCPParameter(*t) {
-		return ErrInvalidSCPType
+	if err := run(f,t,d); err != nil {
+		fmt.Fprintln(os.Stderr, exitFail)
 	}
-	//Load the raw json data
-	scannerData, err := loadScannerFile(*f)
+}
+
+//run is an abstraction function that allows
+//us to test codebase.
+func run(scannerFilename *string, serviceType *string, thresholdLimit *int64) error {
+	//Get Config
+	scpRun := SCPRun{scannerFilename: *scannerFilename,serviceType: *serviceType,
+		thresholdLimit: *thresholdLimit}
+
+	_, err :=scpRun.validateService()
+	if err != nil {
+		return err
+	}
+
+	err = scpRun.getReport()
 
 	if err != nil {
 		return err
 	}
 
-	scannerReport, err := generateReport(scannerData)
+	err = scpRun.getUsageData()
 	if err != nil {
 		return err
 	}
-    type fnEval = func(int64, int64) bool
 
-	var apiFn fnEval
-
-	r := *scannerReport
-	n := &r[0].Results.Service
-	s := serviceName(*n)
-
-	switch *t {
-	case "Allow":
-		apiFn = greaterThan
-	case "Deny":
-		apiFn = lessThan
-	}
-
-	listResults, err := generateList(*d,&r[0],apiFn)
+	err = scpRun.createPermissions()
 
 	if err != nil {
 		return err
 	}
 
-	SCPfile := generateSCP(*t, s, listResults)
-	err = saveSCP(SCPfile)
+	err = scpRun.formatServiceName()
 
 	if err != nil {
 		return err
 	}
 
+	err = scpRun.createSCP()
+
+	if err != nil {
+		return err
+	}
+
+	err = scpRun.saveSCP()
+
+	if err != nil {
+		return err
+	}
 	return nil
 }
+
 //SCPConfig is a struct that will hold the
 //flag values
 type SCPConfig struct {
@@ -148,7 +231,7 @@ func serviceName(eventSource string) string {
 
 //LoadScannerFile loads the scanner json report
 func loadScannerFile(scannerFileName string) ([]byte, error) {
-	scannerData, err := ioutil.ReadFile(scannerFileName)
+	scannerData, err := loadFile(scannerFileName)
 	if err != nil {
 		return nil, ErrInvalidParameters
 	}

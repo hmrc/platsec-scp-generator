@@ -1,0 +1,17 @@
+{
+ "Version": "2012-10-17",
+ "Statement": {
+  "Effect": "Allow",
+  "Action": [
+   "S3:BatchGetBuilds",
+   "S3:GetLambdaFunctionRecommendations",
+   "S3:DescribeSecurityGroups",
+   "S3:DescribeVpcs",
+   "S3:ListStacks",
+   "S3:LookupEvents",
+   "S3:ListTags",
+   "S3:GetEventSelectors"
+  ]
+ },
+ "Resource": "*"
+}

@@ -29,18 +29,28 @@ func TestGenerateServiceName(t *testing.T) {
 
 //TestLoadScannerReport tests that a scanner report can
 //be loaded
-func TestLoadScannerReport(t *testing.T) {
+func TestLoadScannerValidReport(t *testing.T) {
 	scannerFileName := "./testdata/s3_scanner_report.json"
-	scannerFileData, err := loadScannerFile(scannerFileName)
-
-	if err != nil {
-		t.Fatalf("cannot read: %s, got %v",
-			scannerFileName, err)
+    loadFileMock := func(filename string)([]byte, error){
+		return []byte("It Worked"), nil
 	}
+	scannerFileData, _ := loadScannerFile(scannerFileName)
 
-	if len(scannerFileData) <= 0 {
-		t.Fatalf("fixture %s is empty file", scannerFileData)
+	loadFile = loadFileMock
+	assert.True(t, len(scannerFileData) > 0)
+}
+
+//TestLoadScannerInValidReport tests that a scanner report can
+//be loaded
+func TestLoadScannerInValidReport(t *testing.T) {
+	scannerFileName := "./testdata/s3_scanner_report.json"
+	loadFileMock := func(filename string)([]byte, error){
+		return nil, ErrInvalidParameters
 	}
+	loadFile = loadFileMock
+	_, err := loadScannerFile(scannerFileName)
+
+	assert.NotNil(t, err)
 }
 
 //TestDirectorCheckTrue tests directoryCheck returns true for
@@ -303,6 +313,61 @@ func TestSCPTypeParameterReturnsFalse(t *testing.T) {
 	}
 }
 
+///TestValidateService test that validation returns true
+//When the Service Type is valid
+func TestValidateServiceValidServiceType(t *testing.T){
+	testSCPRun := getTestSCPRun()
+	actual, err := testSCPRun.validateService()
+
+	if err != nil {
+		t.Fatalf("TestValidateServiceValidServiceType failed")
+	}
+
+	assert.True(t, actual)
+}
+
+///TestValidateServiceFails test that validation returns an error
+//When the Service Type is valid
+func TestValidateServiceInValidServiceType(t *testing.T){
+	testSCPRun := getTestSCPRun()
+	testSCPRun.serviceType = "InvalidType"
+	actual, err := testSCPRun.validateService()
+
+	assert.NotNil(t, err)
+	assert.False(t, actual)
+}
+
+//TestGetUsageDataValidPath tests that the SCP Run
+//can load a usage file
+func TestGetUsageDataValidPath(t *testing.T) {
+	testSCPRun := getTestSCPRun()
+	loadFileMock := func(filename string)([]byte, error){
+		return []byte("It Worked"), nil
+	}
+	loadFile = loadFileMock
+	err := testSCPRun.getUsageData()
+	assert.Nil(t, err)
+}
+
+//TestGetUsageDataInvalidPath tests that the SCP Run
+//can load a usage file
+func TestGetUsageDataInvalidPath(t *testing.T) {
+	testSCPRun := getTestSCPRun()
+	loadFileMock := func(filename string)([]byte, error){
+		return nil, ErrInvalidParameters
+	}
+	loadFile = loadFileMock
+	err := testSCPRun.getUsageData()
+	assert.NotNil(t, err)
+}
+
+//Returns a test SCP Run object
+func getTestSCPRun() SCPRun {
+	testSCPRun := SCPRun{thresholdLimit: 10,
+		scannerFilename: "testFile",
+		serviceType: "Allow"}
+	return testSCPRun
+}
 //JSONFileDataStub
 type jsonFileStub struct {
 	inputData string
@@ -405,7 +470,7 @@ func getScannerMessage() string {
           "count": 205
         },
         {
-          "event_name": "GetBucketLifecycle",
+          "event_name": "tLifecycle",
           "count": 1
         },
         {
