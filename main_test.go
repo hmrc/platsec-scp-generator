@@ -361,6 +361,30 @@ func TestGetUsageDataInvalidPath(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+//TestGetReportValidPath test that the json data can be serialised
+func TestGetReportValidPath(t *testing.T) {
+	testSCPRun := getTestSCPRun()
+	loadFileMock := func(filename string)([]byte, error){
+		return []byte(getScannerMessage()), nil
+	}
+	loadFile = loadFileMock
+	testSCPRun.getUsageData()
+
+	err:= testSCPRun.getReport()
+	assert.Nil(t, err)
+}
+
+//TestGetReportInvalidPath test that the json data can be serialised
+func TestGetReportInvalidPath(t *testing.T) {
+	testSCPRun := getTestSCPRun()
+	loadFileMock := func(filename string)([]byte, error){
+		return nil, ErrInvalidParameters
+	}
+	loadFile = loadFileMock
+	err:= testSCPRun.getReport()
+	assert.NotNil(t, err)
+}
+
 //Returns a test SCP Run object
 func getTestSCPRun() SCPRun {
 	testSCPRun := SCPRun{thresholdLimit: 10,
