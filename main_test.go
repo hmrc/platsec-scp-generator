@@ -385,6 +385,97 @@ func TestGetReportInvalidPath(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+//TestCreatePermissionsValidPath tests that the permissions can be
+//Created
+func TestCreatePermissionValidPath(t *testing.T) {
+	testSCPRun := getTestSCPRun()
+	loadFileMock := func(filename string)([]byte, error){
+		return []byte(getScannerMessage()), nil
+	}
+	loadFile = loadFileMock
+	usageErr := testSCPRun.getUsageData()
+
+	if usageErr != nil {
+		t.Fatalf("Could not get usage information")
+	}
+
+	reportErr :=testSCPRun.getReport()
+
+	if reportErr != nil {
+		t.Fatalf("Could not serialize data")
+	}
+
+	err := testSCPRun.createPermissions()
+	assert.Nil(t, err)
+}
+
+//TestCreatePermissionsAlternateValidPath tests that the permissions can be
+//Created
+func TestCreatePermissionAlternateValidPath(t *testing.T) {
+	testSCPRun := getTestSCPRun()
+	testSCPRun.serviceType = "Deny"
+	loadFileMock := func(filename string)([]byte, error){
+		return []byte(getScannerMessage()), nil
+	}
+	loadFile = loadFileMock
+	usageErr := testSCPRun.getUsageData()
+
+	if usageErr != nil {
+		t.Fatalf("Could not get usage information")
+	}
+
+	reportErr :=testSCPRun.getReport()
+
+	if reportErr != nil {
+		t.Fatalf("Could not serialize data")
+	}
+
+	err := testSCPRun.createPermissions()
+	assert.Nil(t, err)
+}
+
+
+//TestCreatePermissionsGeneratesErrorInvalidThresholds
+func TestCreatePermissionsGeneratesErrorInvalidThresholds(t *testing.T){
+	cases := []struct{
+		threshold int64
+		expected error
+	}{
+		{
+			threshold: 0,
+			expected: ErrInvalidThreshold,
+		},
+		{
+			threshold: -1,
+			expected: ErrInvalidThreshold,
+		},
+	}
+
+	for _,c := range cases {
+		testSCPRun := getTestSCPRun()
+		testSCPRun.thresholdLimit = c.threshold
+		testSCPRun.serviceType = "Deny"
+		loadFileMock := func(filename string)([]byte, error){
+			return []byte(getScannerMessage()), nil
+		}
+		loadFile = loadFileMock
+		usageErr := testSCPRun.getUsageData()
+
+		if usageErr != nil {
+			t.Fatalf("Could not get usage information")
+		}
+
+		reportErr :=testSCPRun.getReport()
+
+		if reportErr != nil {
+			t.Fatalf("Could not serialize data")
+		}
+
+		err := testSCPRun.createPermissions()
+		assert.Equal(t, c.expected,err)
+	}
+}
+
 //Returns a test SCP Run object
 func getTestSCPRun() SCPRun {
 	testSCPRun := SCPRun{thresholdLimit: 10,
