@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -26,7 +27,9 @@ type SCPRun struct {
 
 //Package level vars to allow patch testing
 type fileLoader func (filename string)([]byte,error)
+type writeSCP func (filename string, data []byte, perm fs.FileMode) error
 var loadFile fileLoader = ioutil.ReadFile
+var saveSCPFile writeSCP = ioutil.WriteFile
 
 //validateService checks that the correct apply or
 //deny value was supplied.
@@ -313,7 +316,7 @@ func generateSCP(scpType string, awsService string, permissionData map[string]in
 //saveSCP saves the scp file
 func saveSCP(scp SCP) error {
 	jsonData, _ := json.MarshalIndent(scp, "", " ")
-	err := ioutil.WriteFile("testSCP.json", jsonData, 0644)
+	err := saveSCPFile("testSCP.json", jsonData, 0644)
 	return err
 }
 

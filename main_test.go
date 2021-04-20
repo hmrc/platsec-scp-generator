@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"io/fs"
 	"os"
 	"testing"
 )
@@ -486,6 +488,174 @@ func getTestSCPRun() SCPRun {
 //JSONFileDataStub
 type jsonFileStub struct {
 	inputData string
+}
+
+//TestFormatServiceName tests that a service name was correctly
+//Formatted
+func TestFormatServiceName (t *testing.T) {
+	testSCPRun := getTestSCPRun()
+	testSCPRun.serviceType = "Deny"
+	loadFileMock := func(filename string)([]byte, error){
+		return []byte(getScannerMessage()), nil
+	}
+	loadFile = loadFileMock
+	usageErr := testSCPRun.getUsageData()
+
+	if usageErr != nil {
+		t.Fatalf("Could not get usage information")
+	}
+
+	reportErr :=testSCPRun.getReport()
+
+	if reportErr != nil {
+		t.Fatalf("Could not serialize data")
+	}
+
+	permErr := testSCPRun.createPermissions()
+
+	if permErr != nil {
+		t.Fatalf("Could Not Create Permissions")
+	}
+
+	err := testSCPRun.formatServiceName()
+
+	assert.Nil(t, err)
+
+}
+
+//TestCreateSCP tests that an SCP can be created
+func TestCreateSCP_IntegrationTest (t *testing.T) {
+	testSCPRun := getTestSCPRun()
+	testSCPRun.serviceType = "Deny"
+	loadFileMock := func(filename string)([]byte, error){
+		return []byte(getScannerMessage()), nil
+	}
+	loadFile = loadFileMock
+	usageErr := testSCPRun.getUsageData()
+
+	if usageErr != nil {
+		t.Fatalf("Could not get usage information")
+	}
+
+	reportErr :=testSCPRun.getReport()
+
+	if reportErr != nil {
+		t.Fatalf("Could not serialize data")
+	}
+
+	permErr := testSCPRun.createPermissions()
+
+	if permErr != nil {
+		t.Fatalf("Could Not Create Permissions")
+	}
+
+	fmtErr := testSCPRun.formatServiceName()
+
+	if fmtErr != nil {
+		t.Fatalf("Could Not Format Service Name")
+	}
+
+	err := testSCPRun.createSCP()
+
+	assert.Nil(t, err)
+}
+
+//TestSaveSCPFile test saving a scp file
+func TestSaveSCPFile_IntegrationTest (t *testing.T){
+	testSCPRun := getTestSCPRun()
+	testSCPRun.serviceType = "Deny"
+	loadFileMock := func(filename string)([]byte, error){
+		return []byte(getScannerMessage()), nil
+	}
+	loadFile = loadFileMock
+	saveFileMock := func(filename string, data []byte, perm fs.FileMode) error {
+		return nil
+	}
+	saveSCPFile = saveFileMock
+
+	usageErr := testSCPRun.getUsageData()
+
+	if usageErr != nil {
+		t.Fatalf("Could not get usage information")
+	}
+
+	reportErr :=testSCPRun.getReport()
+
+	if reportErr != nil {
+		t.Fatalf("Could not serialize data")
+	}
+
+	permErr := testSCPRun.createPermissions()
+
+	if permErr != nil {
+		t.Fatalf("Could Not Create Permissions")
+	}
+
+	fmtErr := testSCPRun.formatServiceName()
+
+	if fmtErr != nil {
+		t.Fatalf("Could Not Format Service Name")
+	}
+
+	SCPerr := testSCPRun.createSCP()
+
+	if SCPerr != nil {
+		t.Fatalf("Could Not create SCP")
+	}
+
+	err := testSCPRun.saveSCP()
+
+	assert.Nil(t, err)
+}
+
+//TestSaveSCPFileGeneratesError tests an error is
+//Created
+func TestSaveSCPFileError_IntegrationTest (t *testing.T){
+	testSCPRun := getTestSCPRun()
+	testSCPRun.serviceType = "Deny"
+	loadFileMock := func(filename string)([]byte, error){
+		return []byte(getScannerMessage()), nil
+	}
+	loadFile = loadFileMock
+	saveFileMock := func(filename string, data []byte, perm fs.FileMode) error {
+		return errors.New("file could not be saved")
+	}
+	saveSCPFile = saveFileMock
+
+	usageErr := testSCPRun.getUsageData()
+
+	if usageErr != nil {
+		t.Fatalf("Could not get usage information")
+	}
+
+	reportErr :=testSCPRun.getReport()
+
+	if reportErr != nil {
+		t.Fatalf("Could not serialize data")
+	}
+
+	permErr := testSCPRun.createPermissions()
+
+	if permErr != nil {
+		t.Fatalf("Could Not Create Permissions")
+	}
+
+	fmtErr := testSCPRun.formatServiceName()
+
+	if fmtErr != nil {
+		t.Fatalf("Could Not Format Service Name")
+	}
+
+	SCPerr := testSCPRun.createSCP()
+
+	if SCPerr != nil {
+		t.Fatalf("Could Not create SCP")
+	}
+
+	err := testSCPRun.saveSCP()
+
+	assert.NotNil(t, err)
+
 }
 
 func (j jsonFileStub) getData() []byte {
