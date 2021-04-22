@@ -14,34 +14,37 @@ import (
 const (
 	exitFail = 1
 )
-type SCPRun struct {
-	scannerFilename string
-	serviceType string
-	serviceName string
-	thresholdLimit int64
-	usageData []byte
-	reports *[]Report
-	permissionSet map[string]int64
-	scp SCP
-}
 
 //Package level vars to allow patch testing
-type fileLoader func (filename string)([]byte,error)
-type writeSCP func (filename string, data []byte, perm fs.FileMode) error
+type fileLoader func(filename string) ([]byte, error)
+type writeSCP func(filename string, data []byte, perm fs.FileMode) error
+
 var loadFile fileLoader = ioutil.ReadFile
 var saveSCPFile writeSCP = ioutil.WriteFile
+
+type SCPRun struct {
+	scannerFilename string
+	serviceType     string
+	serviceName     string
+	thresholdLimit  int64
+	usageData       []byte
+	reports         *[]Report
+	permissionSet   map[string]int64
+	scp             SCP
+}
+
 
 //validateService checks that the correct apply or
 //deny value was supplied.
 func (s *SCPRun) validateService() (bool, error) {
-	if !checkSCPParameter(s.serviceType){
+	if !checkSCPParameter(s.serviceType) {
 		return false, ErrInvalidSCPType
 	}
 	return true, nil
 }
 
-func (s *SCPRun) getUsageData()error{
-	usageData, err :=loadScannerFile(s.scannerFilename)
+func (s *SCPRun) getUsageData() error {
+	usageData, err := loadScannerFile(s.scannerFilename)
 	if err != nil {
 		return err
 	}
@@ -49,16 +52,16 @@ func (s *SCPRun) getUsageData()error{
 	return nil
 }
 
-func (s *SCPRun) getReport() error{
- 	r, err := generateReport(s.usageData)
- 	if err != nil {
- 		return err
- 	}
- 	s.reports = r
- 	return nil
+func (s *SCPRun) getReport() error {
+	r, err := generateReport(s.usageData)
+	if err != nil {
+		return err
+	}
+	s.reports = r
+	return nil
 }
 
-func (s *SCPRun) createPermissions() error{
+func (s *SCPRun) createPermissions() error {
 	type fnEval = func(int64, int64) bool
 	var apiFn fnEval
 
@@ -70,8 +73,8 @@ func (s *SCPRun) createPermissions() error{
 	}
 
 	r := *s.reports
-	permissionSet, err := generateList(s.thresholdLimit,&r[0],apiFn)
-	if err != nil{
+	permissionSet, err := generateList(s.thresholdLimit, &r[0], apiFn)
+	if err != nil {
 		return err
 	}
 	s.permissionSet = permissionSet
@@ -87,7 +90,7 @@ func (s *SCPRun) formatServiceName() error {
 }
 
 func (s *SCPRun) createSCP() error {
-	s.scp =generateSCP(s.serviceType,s.serviceName,s.permissionSet)
+	s.scp = generateSCP(s.serviceType, s.serviceName, s.permissionSet)
 	return nil
 }
 
@@ -104,57 +107,60 @@ func main() {
 	c.setup()
 	flag.Parse()
 
-	f := c.scannerFilename()
-	t := c.serviceType()
-	d := c.thresholdLimit()
-
-	if err := run(f,t,d); err != nil {
+	r := new(c)
+	if err := run(r); err != nil {
 		fmt.Fprintln(os.Stderr, exitFail)
 	}
 }
 
+func new(c SCPConfig) *SCPRun{
+
+	scpRun := SCPRun{scannerFilename: *c.scannerFilename(),
+		serviceType: *c.serviceType(),
+		thresholdLimit: *c.thresholdLimit()}
+
+	return &scpRun
+}
+
 //run is an abstraction function that allows
 //us to test codebase.
-func run(scannerFilename *string, serviceType *string, thresholdLimit *int64) error {
-	//Get Config
-	scpRun := SCPRun{scannerFilename: *scannerFilename,serviceType: *serviceType,
-		thresholdLimit: *thresholdLimit}
+func run(executionRun *SCPRun) error {
 
-	_, err :=scpRun.validateService()
+	_, err := executionRun.validateService()
 	if err != nil {
 		return err
 	}
 
-	err = scpRun.getReport()
-
-	if err != nil {
-		return err
-	}
-
-	err = scpRun.getUsageData()
-	if err != nil {
-		return err
-	}
-
-	err = scpRun.createPermissions()
+	err = executionRun.getReport()
 
 	if err != nil {
 		return err
 	}
 
-	err = scpRun.formatServiceName()
+	err = executionRun.getUsageData()
+	if err != nil {
+		return err
+	}
+
+	err = executionRun.createPermissions()
 
 	if err != nil {
 		return err
 	}
 
-	err = scpRun.createSCP()
+	err = executionRun.formatServiceName()
 
 	if err != nil {
 		return err
 	}
 
-	err = scpRun.saveSCP()
+	err = executionRun.createSCP()
+
+	if err != nil {
+		return err
+	}
+
+	err = executionRun.saveSCP()
 
 	if err != nil {
 		return err
@@ -322,7 +328,7 @@ func saveSCP(scp SCP) error {
 
 //checkSCPParameter checks that SCP parameter was
 //Entered with correct value
-func checkSCPParameter(scpType string) bool{
+func checkSCPParameter(scpType string) bool {
 	scpCheck := false
 
 	s := strings.ToLower(scpType)

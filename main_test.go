@@ -33,7 +33,7 @@ func TestGenerateServiceName(t *testing.T) {
 //be loaded
 func TestLoadScannerValidReport(t *testing.T) {
 	scannerFileName := "./testdata/s3_scanner_report.json"
-    loadFileMock := func(filename string)([]byte, error){
+	loadFileMock := func(filename string) ([]byte, error) {
 		return []byte("It Worked"), nil
 	}
 	scannerFileData, _ := loadScannerFile(scannerFileName)
@@ -46,7 +46,7 @@ func TestLoadScannerValidReport(t *testing.T) {
 //be loaded
 func TestLoadScannerInValidReport(t *testing.T) {
 	scannerFileName := "./testdata/s3_scanner_report.json"
-	loadFileMock := func(filename string)([]byte, error){
+	loadFileMock := func(filename string) ([]byte, error) {
 		return nil, ErrInvalidParameters
 	}
 	loadFile = loadFileMock
@@ -317,7 +317,7 @@ func TestSCPTypeParameterReturnsFalse(t *testing.T) {
 
 ///TestValidateService test that validation returns true
 //When the Service Type is valid
-func TestValidateServiceValidServiceType(t *testing.T){
+func TestValidateServiceValidServiceType(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	actual, err := testSCPRun.validateService()
 
@@ -330,7 +330,7 @@ func TestValidateServiceValidServiceType(t *testing.T){
 
 ///TestValidateServiceFails test that validation returns an error
 //When the Service Type is valid
-func TestValidateServiceInValidServiceType(t *testing.T){
+func TestValidateServiceInValidServiceType(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	testSCPRun.serviceType = "InvalidType"
 	actual, err := testSCPRun.validateService()
@@ -343,7 +343,7 @@ func TestValidateServiceInValidServiceType(t *testing.T){
 //can load a usage file
 func TestGetUsageDataValidPath(t *testing.T) {
 	testSCPRun := getTestSCPRun()
-	loadFileMock := func(filename string)([]byte, error){
+	loadFileMock := func(filename string) ([]byte, error) {
 		return []byte("It Worked"), nil
 	}
 	loadFile = loadFileMock
@@ -355,7 +355,7 @@ func TestGetUsageDataValidPath(t *testing.T) {
 //can load a usage file
 func TestGetUsageDataInvalidPath(t *testing.T) {
 	testSCPRun := getTestSCPRun()
-	loadFileMock := func(filename string)([]byte, error){
+	loadFileMock := func(filename string) ([]byte, error) {
 		return nil, ErrInvalidParameters
 	}
 	loadFile = loadFileMock
@@ -366,24 +366,24 @@ func TestGetUsageDataInvalidPath(t *testing.T) {
 //TestGetReportValidPath test that the json data can be serialised
 func TestGetReportValidPath(t *testing.T) {
 	testSCPRun := getTestSCPRun()
-	loadFileMock := func(filename string)([]byte, error){
+	loadFileMock := func(filename string) ([]byte, error) {
 		return []byte(getScannerMessage()), nil
 	}
 	loadFile = loadFileMock
 	testSCPRun.getUsageData()
 
-	err:= testSCPRun.getReport()
+	err := testSCPRun.getReport()
 	assert.Nil(t, err)
 }
 
 //TestGetReportInvalidPath test that the json data can be serialised
 func TestGetReportInvalidPath(t *testing.T) {
 	testSCPRun := getTestSCPRun()
-	loadFileMock := func(filename string)([]byte, error){
+	loadFileMock := func(filename string) ([]byte, error) {
 		return nil, ErrInvalidParameters
 	}
 	loadFile = loadFileMock
-	err:= testSCPRun.getReport()
+	err := testSCPRun.getReport()
 	assert.NotNil(t, err)
 }
 
@@ -391,7 +391,7 @@ func TestGetReportInvalidPath(t *testing.T) {
 //Created
 func TestCreatePermissionValidPath(t *testing.T) {
 	testSCPRun := getTestSCPRun()
-	loadFileMock := func(filename string)([]byte, error){
+	loadFileMock := func(filename string) ([]byte, error) {
 		return []byte(getScannerMessage()), nil
 	}
 	loadFile = loadFileMock
@@ -401,7 +401,7 @@ func TestCreatePermissionValidPath(t *testing.T) {
 		t.Fatalf("Could not get usage information")
 	}
 
-	reportErr :=testSCPRun.getReport()
+	reportErr := testSCPRun.getReport()
 
 	if reportErr != nil {
 		t.Fatalf("Could not serialize data")
@@ -416,7 +416,7 @@ func TestCreatePermissionValidPath(t *testing.T) {
 func TestCreatePermissionAlternateValidPath(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	testSCPRun.serviceType = "Deny"
-	loadFileMock := func(filename string)([]byte, error){
+	loadFileMock := func(filename string) ([]byte, error) {
 		return []byte(getScannerMessage()), nil
 	}
 	loadFile = loadFileMock
@@ -426,7 +426,7 @@ func TestCreatePermissionAlternateValidPath(t *testing.T) {
 		t.Fatalf("Could not get usage information")
 	}
 
-	reportErr :=testSCPRun.getReport()
+	reportErr := testSCPRun.getReport()
 
 	if reportErr != nil {
 		t.Fatalf("Could not serialize data")
@@ -436,28 +436,27 @@ func TestCreatePermissionAlternateValidPath(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-
 //TestCreatePermissionsGeneratesErrorInvalidThresholds
-func TestCreatePermissionsGeneratesErrorInvalidThresholds(t *testing.T){
-	cases := []struct{
+func TestCreatePermissionsGeneratesErrorInvalidThresholds(t *testing.T) {
+	cases := []struct {
 		threshold int64
-		expected error
+		expected  error
 	}{
 		{
 			threshold: 0,
-			expected: ErrInvalidThreshold,
+			expected:  ErrInvalidThreshold,
 		},
 		{
 			threshold: -1,
-			expected: ErrInvalidThreshold,
+			expected:  ErrInvalidThreshold,
 		},
 	}
 
-	for _,c := range cases {
+	for _, c := range cases {
 		testSCPRun := getTestSCPRun()
 		testSCPRun.thresholdLimit = c.threshold
 		testSCPRun.serviceType = "Deny"
-		loadFileMock := func(filename string)([]byte, error){
+		loadFileMock := func(filename string) ([]byte, error) {
 			return []byte(getScannerMessage()), nil
 		}
 		loadFile = loadFileMock
@@ -467,14 +466,14 @@ func TestCreatePermissionsGeneratesErrorInvalidThresholds(t *testing.T){
 			t.Fatalf("Could not get usage information")
 		}
 
-		reportErr :=testSCPRun.getReport()
+		reportErr := testSCPRun.getReport()
 
 		if reportErr != nil {
 			t.Fatalf("Could not serialize data")
 		}
 
 		err := testSCPRun.createPermissions()
-		assert.Equal(t, c.expected,err)
+		assert.Equal(t, c.expected, err)
 	}
 }
 
@@ -482,9 +481,10 @@ func TestCreatePermissionsGeneratesErrorInvalidThresholds(t *testing.T){
 func getTestSCPRun() SCPRun {
 	testSCPRun := SCPRun{thresholdLimit: 10,
 		scannerFilename: "testFile",
-		serviceType: "Allow"}
+		serviceType:     "Allow"}
 	return testSCPRun
 }
+
 //JSONFileDataStub
 type jsonFileStub struct {
 	inputData string
@@ -492,10 +492,10 @@ type jsonFileStub struct {
 
 //TestFormatServiceName tests that a service name was correctly
 //Formatted
-func TestFormatServiceName (t *testing.T) {
+func TestFormatServiceName(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	testSCPRun.serviceType = "Deny"
-	loadFileMock := func(filename string)([]byte, error){
+	loadFileMock := func(filename string) ([]byte, error) {
 		return []byte(getScannerMessage()), nil
 	}
 	loadFile = loadFileMock
@@ -505,7 +505,7 @@ func TestFormatServiceName (t *testing.T) {
 		t.Fatalf("Could not get usage information")
 	}
 
-	reportErr :=testSCPRun.getReport()
+	reportErr := testSCPRun.getReport()
 
 	if reportErr != nil {
 		t.Fatalf("Could not serialize data")
@@ -524,10 +524,10 @@ func TestFormatServiceName (t *testing.T) {
 }
 
 //TestCreateSCP tests that an SCP can be created
-func TestCreateSCP_IntegrationTest (t *testing.T) {
+func TestCreateSCP_IntegrationTest(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	testSCPRun.serviceType = "Deny"
-	loadFileMock := func(filename string)([]byte, error){
+	loadFileMock := func(filename string) ([]byte, error) {
 		return []byte(getScannerMessage()), nil
 	}
 	loadFile = loadFileMock
@@ -537,7 +537,7 @@ func TestCreateSCP_IntegrationTest (t *testing.T) {
 		t.Fatalf("Could not get usage information")
 	}
 
-	reportErr :=testSCPRun.getReport()
+	reportErr := testSCPRun.getReport()
 
 	if reportErr != nil {
 		t.Fatalf("Could not serialize data")
@@ -561,10 +561,10 @@ func TestCreateSCP_IntegrationTest (t *testing.T) {
 }
 
 //TestSaveSCPFile test saving a scp file
-func TestSaveSCPFile_IntegrationTest (t *testing.T){
+func TestSaveSCPFile_IntegrationTest(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	testSCPRun.serviceType = "Deny"
-	loadFileMock := func(filename string)([]byte, error){
+	loadFileMock := func(filename string) ([]byte, error) {
 		return []byte(getScannerMessage()), nil
 	}
 	loadFile = loadFileMock
@@ -579,7 +579,7 @@ func TestSaveSCPFile_IntegrationTest (t *testing.T){
 		t.Fatalf("Could not get usage information")
 	}
 
-	reportErr :=testSCPRun.getReport()
+	reportErr := testSCPRun.getReport()
 
 	if reportErr != nil {
 		t.Fatalf("Could not serialize data")
@@ -610,10 +610,10 @@ func TestSaveSCPFile_IntegrationTest (t *testing.T){
 
 //TestSaveSCPFileGeneratesError tests an error is
 //Created
-func TestSaveSCPFileError_IntegrationTest (t *testing.T){
+func TestSaveSCPFileError_IntegrationTest(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	testSCPRun.serviceType = "Deny"
-	loadFileMock := func(filename string)([]byte, error){
+	loadFileMock := func(filename string) ([]byte, error) {
 		return []byte(getScannerMessage()), nil
 	}
 	loadFile = loadFileMock
@@ -628,7 +628,7 @@ func TestSaveSCPFileError_IntegrationTest (t *testing.T){
 		t.Fatalf("Could not get usage information")
 	}
 
-	reportErr :=testSCPRun.getReport()
+	reportErr := testSCPRun.getReport()
 
 	if reportErr != nil {
 		t.Fatalf("Could not serialize data")
@@ -656,6 +656,26 @@ func TestSaveSCPFileError_IntegrationTest (t *testing.T){
 
 	assert.NotNil(t, err)
 
+}
+
+//TestCreateRun creation of a scp run
+func TestCreateRun(t *testing.T) {
+	testSCPConfig := SCPConfig{ScannerFile: "testFile",SCPType: "Allow",
+		Threshold: 10}
+
+	testRun := new(testSCPConfig)
+	assert.NotNil(t, testRun)
+}
+
+//TestSetup tests setup of the flag variables
+func TestSetup (t *testing.T) {
+	testConfig := SCPConfig{}
+
+	testConfig.setup()
+
+	assert.NotNil(t, testConfig.Threshold)
+	assert.NotNil(t, testConfig.ScannerFile)
+	assert.NotNil(t, testConfig.SCPType)
 }
 
 func (j jsonFileStub) getData() []byte {
