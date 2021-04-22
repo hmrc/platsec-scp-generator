@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -21,6 +22,9 @@ type writeSCP func(filename string, data []byte, perm fs.FileMode) error
 
 var loadFile fileLoader = ioutil.ReadFile
 var saveSCPFile writeSCP = ioutil.WriteFile
+var ErrInvalidParameters = errors.New("input parameters missing")
+var ErrInvalidThreshold = errors.New("threshold limit must be greater than zero")
+var ErrInvalidSCPType = errors.New("scp type must be Allow or Deny")
 
 type SCPRun struct {
 	scannerFilename string
@@ -32,7 +36,6 @@ type SCPRun struct {
 	permissionSet   map[string]int64
 	scp             SCP
 }
-
 
 //validateService checks that the correct apply or
 //deny value was supplied.
@@ -103,20 +106,25 @@ func (s *SCPRun) saveSCP() error {
 }
 
 func main() {
-	c := SCPConfig{}
-	c.setup()
-	flag.Parse()
 
-	r := new(c)
-	if err := run(r); err != nil {
+	conf, output, err := parseFlags(os.Args[0],os.Args[1:])
+	if err == flag.ErrHelp {
 		fmt.Fprintln(os.Stderr, exitFail)
 	}
+
+
+	r := new(conf)
+	if err := run(r); err != nil {
+		fmt.Fprintln(os.Stderr,exitFail)
+	}
+
+	fmt.Println(output)
 }
 
-func new(c SCPConfig) *SCPRun{
+func new(c *SCPConfig) *SCPRun {
 
 	scpRun := SCPRun{scannerFilename: *c.scannerFilename(),
-		serviceType: *c.serviceType(),
+		serviceType:    *c.serviceType(),
 		thresholdLimit: *c.thresholdLimit()}
 
 	return &scpRun
@@ -131,13 +139,13 @@ func run(executionRun *SCPRun) error {
 		return err
 	}
 
-	err = executionRun.getReport()
+	err = executionRun.getUsageData()
 
 	if err != nil {
 		return err
 	}
 
-	err = executionRun.getUsageData()
+	err = executionRun.getReport()
 	if err != nil {
 		return err
 	}
@@ -174,13 +182,30 @@ type SCPConfig struct {
 	SCPType     string
 	ScannerFile string
 	Threshold   int64
+	args []string
 }
 
-//Setup defines script parameters
-func (s *SCPConfig) setup() {
-	flag.StringVar(&s.SCPType, "type", "Allow", "can be either Allow or Deny")
-	flag.StringVar(&s.ScannerFile, "fileloc", "./s3_usage.json", "file location of scanner usage report")
-	flag.Int64Var(&s.Threshold, "threshold", 10, "decision threshold")
+func parseFlags(progname string, args []string) (config *SCPConfig,
+	output string, err error) {
+	flags := flag.NewFlagSet(progname,flag.ContinueOnError)
+
+	var buf bytes.Buffer
+	var c SCPConfig
+
+	flags.SetOutput(&buf)
+	flag.StringVar(&c.SCPType, "type", "Allow", "can be either Allow or Deny")
+	flag.StringVar(&c.ScannerFile, "fileloc", "./s3_usage.json", "file location of scanner usage report")
+	flag.Int64Var(&c.Threshold, "threshold", 10, "decision threshold")
+
+	err = flags.Parse(args)
+
+	if err != nil {
+		return nil, buf.String(),err
+	}
+
+	c.args = flags.Args()
+	return &c, buf.String(),nil
+
 }
 
 //ServiceType returns the SCP Type parameter
@@ -227,9 +252,6 @@ type SCP struct {
 	Resource string `json:"Resource"`
 }
 
-var ErrInvalidParameters = errors.New("input parameters missing")
-var ErrInvalidThreshold = errors.New("threshold limit must be greater than zero")
-var ErrInvalidSCPType = errors.New("scp type must be Allow or Deny")
 
 // ServiceName returns a formatted service name
 // from event_source data

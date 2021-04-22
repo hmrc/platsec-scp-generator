@@ -660,22 +660,27 @@ func TestSaveSCPFileError_IntegrationTest(t *testing.T) {
 
 //TestCreateRun creation of a scp run
 func TestCreateRun(t *testing.T) {
-	testSCPConfig := SCPConfig{ScannerFile: "testFile",SCPType: "Allow",
-		Threshold: 10}
-
-	testRun := new(testSCPConfig)
+	conf := getTestConf()
+	testRun := new(conf)
 	assert.NotNil(t, testRun)
 }
 
-//TestSetup tests setup of the flag variables
-func TestSetup (t *testing.T) {
-	testConfig := SCPConfig{}
-
-	testConfig.setup()
-
-	assert.NotNil(t, testConfig.Threshold)
-	assert.NotNil(t, testConfig.ScannerFile)
-	assert.NotNil(t, testConfig.SCPType)
+//TestRunEndToEnd_IntegrationTest tests complete run
+func TestRunEndToEnd_IntegrationTest (t *testing.T){
+	progName := "scpgenerator"
+	configArg := []string{"testFile","Deny","10"}
+	conf, _ , _ := parseFlags(progName,configArg)
+	testRun := new(conf)
+	loadFileMock := func(filename string) ([]byte, error) {
+		return []byte(getScannerMessage()), nil
+	}
+	loadFile = loadFileMock
+	saveFileMock := func(filename string, data []byte, perm fs.FileMode) error {
+		return nil
+	}
+	saveSCPFile = saveFileMock
+	err := run(testRun)
+	assert.Nil(t, err)
 }
 
 func (j jsonFileStub) getData() []byte {
@@ -832,4 +837,9 @@ func getTestSCP(scpType string, awsService string) SCP {
 	allowList := getTestAllowListFilteredData()
 	testSCP := generateSCP(scpType, awsService, allowList)
 	return testSCP
+}
+
+func getTestConf()*SCPConfig{
+	scpConf := SCPConfig{SCPType: "Deny",ScannerFile: "TestFile",Threshold: 10}
+	return &scpConf
 }

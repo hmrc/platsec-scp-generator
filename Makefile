@@ -14,11 +14,11 @@ build:
 
 .PHONY: format
 format: build
-	@$(DOCKER_RUN) go fmt ./scp
+	@$(DOCKER_RUN) go fmt .
 
 .PHONY: test
 test: build
-	@$(DOCKER_RUN) go test -cover -v ./scp
+	@$(DOCKER_RUN) go test -cover -v .
 
 .PHONY: lint
 lint:
