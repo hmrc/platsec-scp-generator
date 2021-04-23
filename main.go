@@ -16,7 +16,7 @@ const (
 	exitFail = 1
 )
 
-//Package level vars to allow patch testing
+//Package level vars to allow patch testing.
 type fileLoader func(filename string) ([]byte, error)
 type writeSCP func(filename string, data []byte, perm fs.FileMode) error
 
@@ -37,8 +37,8 @@ type SCPRun struct {
 	scp             SCP
 }
 
-//validateService checks that the correct apply or
-//deny value was supplied.
+// validateService checks that the correct apply or
+// deny value was supplied.
 func (s *SCPRun) validateService() (bool, error) {
 	if !checkSCPParameter(s.serviceType) {
 		return false, ErrInvalidSCPType
@@ -106,23 +106,20 @@ func (s *SCPRun) saveSCP() error {
 }
 
 func main() {
-
-	conf, output, err := parseFlags(os.Args[0],os.Args[1:])
+	conf, output, err := parseFlags(os.Args[0], os.Args[1:])
 	if err == flag.ErrHelp {
 		fmt.Fprintln(os.Stderr, exitFail)
 	}
 
-
 	r := new(conf)
 	if err := run(r); err != nil {
-		fmt.Fprintln(os.Stderr,exitFail)
+		fmt.Fprintln(os.Stderr, exitFail)
 	}
 
 	fmt.Println(output)
 }
 
 func new(c *SCPConfig) *SCPRun {
-
 	scpRun := SCPRun{scannerFilename: *c.scannerFilename(),
 		serviceType:    *c.serviceType(),
 		thresholdLimit: *c.thresholdLimit()}
@@ -130,10 +127,9 @@ func new(c *SCPConfig) *SCPRun {
 	return &scpRun
 }
 
-//run is an abstraction function that allows
-//us to test codebase.
+// run is an abstraction function that allows
+// us to test codebase.
 func run(executionRun *SCPRun) error {
-
 	_, err := executionRun.validateService()
 	if err != nil {
 		return err
@@ -176,18 +172,18 @@ func run(executionRun *SCPRun) error {
 	return nil
 }
 
-//SCPConfig is a struct that will hold the
-//flag values
+// SCPConfig is a struct that will hold the
+// flag values
 type SCPConfig struct {
 	SCPType     string
 	ScannerFile string
 	Threshold   int64
-	args []string
+	args        []string
 }
 
 func parseFlags(progname string, args []string) (config *SCPConfig,
 	output string, err error) {
-	flags := flag.NewFlagSet(progname,flag.ContinueOnError)
+	flags := flag.NewFlagSet(progname, flag.ContinueOnError)
 
 	var buf bytes.Buffer
 	var c SCPConfig
@@ -200,20 +196,19 @@ func parseFlags(progname string, args []string) (config *SCPConfig,
 	err = flags.Parse(args)
 
 	if err != nil {
-		return nil, buf.String(),err
+		return nil, buf.String(), err
 	}
 
 	c.args = flags.Args()
-	return &c, buf.String(),nil
-
+	return &c, buf.String(), nil
 }
 
-//ServiceType returns the SCP Type parameter
+// ServiceType returns the SCP Type parameter
 func (s *SCPConfig) serviceType() *string {
 	return &s.SCPType
 }
 
-//ScannerFilename returns the File
+//ScannerFilename returns the File.
 func (s *SCPConfig) scannerFilename() *string {
 	return &s.ScannerFile
 }
@@ -222,7 +217,7 @@ func (s *SCPConfig) thresholdLimit() *int64 {
 	return &s.Threshold
 }
 
-//Report represents a structure for a scp
+//Report represents a structure for a scp.
 type Report struct {
 	Account struct {
 		Identifier  string `json:"identifier"`
@@ -242,7 +237,7 @@ type Report struct {
 	} `json:"results"`
 }
 
-//SCP is a struct representing a AWS SCP document
+//SCP is a struct representing a AWS SCP document.
 type SCP struct {
 	Version   string `json:"Version"`
 	Statement struct {
@@ -252,15 +247,14 @@ type SCP struct {
 	Resource string `json:"Resource"`
 }
 
-
 // ServiceName returns a formatted service name
-// from event_source data
+// from event_source data.
 func serviceName(eventSource string) string {
 	s := strings.Split(eventSource, ".")
 	return s[0]
 }
 
-//LoadScannerFile loads the scanner json report
+//LoadScannerFile loads the scanner json report.
 func loadScannerFile(scannerFileName string) ([]byte, error) {
 	scannerData, err := loadFile(scannerFileName)
 	if err != nil {
@@ -270,7 +264,7 @@ func loadScannerFile(scannerFileName string) ([]byte, error) {
 }
 
 // directoryCheck checks a directory for files to
-// process
+// process.
 func directoryCheck(directory string) (bool, error) {
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
 		return false, err
@@ -279,24 +273,21 @@ func directoryCheck(directory string) (bool, error) {
 	return true, nil
 }
 
-//GenerateReport will marshall the incoming json data
-//from the scanner program into a struct.
+// GenerateReport will marshall the incoming json data
+// from the scanner program into a struct.
 func generateReport(jsonData []byte) (*[]Report, error) {
 	var v []Report
 	err := json.Unmarshal(jsonData, &v)
-
 	if err != nil {
 		return nil, err
 	}
 
 	return &v, nil
-
 }
 
-//generateList a list of all the api calls
-//That are above and equal to the threshold
+// generateList a list of all the api calls
+// That are above and equal to the threshold
 func generateList(threshold int64, reportData *Report, apiEval func(int64, int64) bool) (map[string]int64, error) {
-
 	if threshold <= 0 {
 		return nil, ErrInvalidThreshold
 	}
@@ -310,7 +301,7 @@ func generateList(threshold int64, reportData *Report, apiEval func(int64, int64
 	return allowList, nil
 }
 
-//greaterThan evaluates the value
+//greaterThan evaluates the value.
 func greaterThan(value int64, threshold int64) bool {
 	isGreaterThan := false
 	if value >= threshold {
@@ -319,7 +310,7 @@ func greaterThan(value int64, threshold int64) bool {
 	return isGreaterThan
 }
 
-//lessThan evaluates the value
+//lessThan evaluates the value.
 func lessThan(value int64, threshold int64) bool {
 	isLessThan := false
 	if value < threshold {
@@ -328,7 +319,7 @@ func lessThan(value int64, threshold int64) bool {
 	return isLessThan
 }
 
-//generateSCP generates an SCP
+//generateSCP generates an SCP.
 func generateSCP(scpType string, awsService string, permissionData map[string]int64) (scp SCP) {
 	scp = SCP{}
 	scp.Version = "2012-10-17"
@@ -341,22 +332,19 @@ func generateSCP(scpType string, awsService string, permissionData map[string]in
 	return scp
 }
 
-//saveSCP saves the scp file
+//saveSCP saves the scp file.
 func saveSCP(scp SCP) error {
 	jsonData, _ := json.MarshalIndent(scp, "", " ")
 	err := saveSCPFile("testSCP.json", jsonData, 0644)
 	return err
 }
 
-//checkSCPParameter checks that SCP parameter was
-//Entered with correct value
+// checkSCPParameter checks that SCP parameter was
+// Entered with correct value
 func checkSCPParameter(scpType string) bool {
-	scpCheck := false
-
 	s := strings.ToLower(scpType)
 	if s == "allow" || s == "deny" {
-		scpCheck = true
+		return true
 	}
-
-	return scpCheck
+	return false
 }
