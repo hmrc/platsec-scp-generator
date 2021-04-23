@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 }
 
 // TestGenerateServiceName tests a service name can be
-// created from the incoming scanner event_source
+// created from the incoming scanner event_source.
 func TestGenerateServiceName(t *testing.T) {
 	eventSource := "s3.amazonaws.com"
 	serviceName := serviceName(eventSource)
@@ -31,7 +31,7 @@ func TestGenerateServiceName(t *testing.T) {
 }
 
 // TestLoadScannerReport tests that a scanner report can
-// be loaded
+// be loaded.
 func TestLoadScannerValidReport(t *testing.T) {
 	scannerFileName := "./testdata/s3_scanner_report.json"
 	loadFileMock := func(filename string) ([]byte, error) {
@@ -44,7 +44,7 @@ func TestLoadScannerValidReport(t *testing.T) {
 }
 
 // TestLoadScannerInValidReport tests that a scanner report can
-// be loaded
+// be loaded.
 func TestLoadScannerInValidReport(t *testing.T) {
 	scannerFileName := "./testdata/s3_scanner_report.json"
 	loadFileMock := func(filename string) ([]byte, error) {
@@ -57,7 +57,7 @@ func TestLoadScannerInValidReport(t *testing.T) {
 }
 
 // TestDirectorCheckTrue tests directoryCheck returns true for
-// existing directory
+// existing directory.
 func TestDirectoryCheckTrue(t *testing.T) {
 	directory := "../scp/"
 	actual, _ := directoryCheck(directory)
@@ -66,7 +66,7 @@ func TestDirectoryCheckTrue(t *testing.T) {
 }
 
 // TestDirectoryCheckFalse test directoryCheck returns false for
-// a non existent directory
+// a non existent directory.
 func TestDirectoryCheckFalse(t *testing.T) {
 	directory := "../scpfalse/"
 	expected := false
@@ -76,7 +76,7 @@ func TestDirectoryCheckFalse(t *testing.T) {
 	assert.False(t, expected, actual)
 }
 
-// TestDecodeFile decodes the file to a map
+// TestDecodeFile decodes the file to a map.
 func TestDecodeFile(t *testing.T) {
 	jsonData := getScannerMessage()
 	testStub := jsonFileStub{inputData: jsonData}
@@ -88,7 +88,7 @@ func TestDecodeFile(t *testing.T) {
 	assert.Equal(t, 10, len(report[0].Results.ServiceUsage))
 }
 
-//TestDecodeFileError returns an error.
+// TestDecodeFileError returns an error.
 func TestDecodeFileError(t *testing.T) {
 	jsonData := getCorruptedScannerMessage()
 	testStub := jsonFileStub{inputData: jsonData}
@@ -99,7 +99,7 @@ func TestDecodeFileError(t *testing.T) {
 
 // TestGenerateAllowListData tests that
 // API actions above a threshold are mapped to
-// A new data structure
+// A new data structure.
 func TestGenerateAllowListData(t *testing.T) {
 	testData := getTestReport()
 	r := *testData
@@ -136,7 +136,7 @@ func TestGenerateAllowListData(t *testing.T) {
 
 // TestGenerateDenyListData tests that
 // API actions above a threshold are mapped to
-// A new data structure
+// A new data structure.
 func TestGenerateDenyListData(t *testing.T) {
 	testData := getTestReport()
 	r := *testData
@@ -173,7 +173,7 @@ func TestGenerateDenyListData(t *testing.T) {
 
 // TestGenerateAllowListGeneratesError tests for
 // An error being returned for zero and negative
-// Thresholds
+// Thresholds.
 func TestGenerateAllowListGeneratesError(t *testing.T) {
 	testReports := getTestReport()
 	testReport := *testReports
@@ -203,7 +203,7 @@ func TestGenerateAllowListGeneratesError(t *testing.T) {
 }
 
 // TestGenerateAllowSCP test that we can
-// generate an SCP from an Allow List
+// generate an SCP from an Allow List.
 func TestGenerateAllowSCP(t *testing.T) {
 	allowList := getTestAllowListFilteredData()
 	scpType := "Allow"
@@ -213,7 +213,7 @@ func TestGenerateAllowSCP(t *testing.T) {
 	assert.Equal(t, "2012-10-17", generated.Version)
 }
 
-//TestSaveSCP tests that we can save an SCP report.
+// TestSaveSCP tests that we can save an SCP report.
 func TestSaveSCP(t *testing.T) {
 	testSCP := getTestSCP("Allow", "S3")
 
@@ -222,29 +222,8 @@ func TestSaveSCP(t *testing.T) {
 	assert.Nil(t, SCPSaved)
 }
 
-//TestGetSCPType test that the SCPType is returned.
-func TestGetSCPType(t *testing.T) {
-	testConfig := SCPConfig{SCPType: "Allow", ScannerFile: "TestFile", Threshold: 34}
-	actual := testConfig.serviceType()
-	assert.Equal(t, "Allow", *actual)
-}
-
-//TestGetScannerFilename test that the SCPType is returned.
-func TestGetScannerFilename(t *testing.T) {
-	testConfig := SCPConfig{SCPType: "Allow", ScannerFile: "TestFile", Threshold: 34}
-	actual := testConfig.scannerFilename()
-	assert.Equal(t, "TestFile", *actual)
-}
-
-//TestGetThreshold test that the SCPType is returned.
-func TestGetThreshold(t *testing.T) {
-	testConfig := SCPConfig{SCPType: "Allow", ScannerFile: "TestFile", Threshold: 34}
-	actual := testConfig.thresholdLimit()
-	assert.Equal(t, 34, int(*actual))
-}
-
 // TestLoadScannerFileReturnsError test that an error is
-// returned
+// returned.
 func TestLoadScannerFileReturnsError(t *testing.T) {
 	testFile := "testFile"
 	fileData, err := loadScannerFile(testFile)
@@ -254,7 +233,7 @@ func TestLoadScannerFileReturnsError(t *testing.T) {
 }
 
 // TestSCPTypeParameterPass tests that we do not
-// fail when we pass the correct parameter types
+// fail when we pass the correct parameter types.
 func TestSCPTypeParameterPass(t *testing.T) {
 	cases := []struct {
 		value    string
@@ -285,7 +264,7 @@ func TestSCPTypeParameterPass(t *testing.T) {
 }
 
 // TestSCPTypeParameterReturnsFalse tests that we do not
-// fail when we pass the correct parameter types
+// fail when we pass the correct parameter types.
 func TestSCPTypeParameterReturnsFalse(t *testing.T) {
 	cases := []struct {
 		value    string
@@ -339,7 +318,7 @@ func TestValidateServiceInValidServiceType(t *testing.T) {
 }
 
 // TestGetUsageDataValidPath tests that the SCP Run
-// can load a usage file
+// can load a usage file.
 func TestGetUsageDataValidPath(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	loadFileMock := func(filename string) ([]byte, error) {
@@ -351,7 +330,7 @@ func TestGetUsageDataValidPath(t *testing.T) {
 }
 
 // TestGetUsageDataInvalidPath tests that the SCP Run
-// can load a usage file
+// can load a usage file.
 func TestGetUsageDataInvalidPath(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	loadFileMock := func(filename string) ([]byte, error) {
@@ -362,7 +341,7 @@ func TestGetUsageDataInvalidPath(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-//TestGetReportValidPath test that the json data can be serialised.
+// TestGetReportValidPath test that the json data can be serialised.
 func TestGetReportValidPath(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	loadFileMock := func(filename string) ([]byte, error) {
@@ -375,7 +354,7 @@ func TestGetReportValidPath(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//TestGetReportInvalidPath test that the json data can be serialised.
+// TestGetReportInvalidPath test that the json data can be serialised.
 func TestGetReportInvalidPath(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	loadFileMock := func(filename string) ([]byte, error) {
@@ -387,7 +366,7 @@ func TestGetReportInvalidPath(t *testing.T) {
 }
 
 // TestCreatePermissionsValidPath tests that the permissions can be
-// Created
+// Created.
 func TestCreatePermissionValidPath(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	loadFileMock := func(filename string) ([]byte, error) {
@@ -411,7 +390,7 @@ func TestCreatePermissionValidPath(t *testing.T) {
 }
 
 // TestCreatePermissionsAlternateValidPath tests that the permissions can be
-// Created
+// Created.
 func TestCreatePermissionAlternateValidPath(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	testSCPRun.serviceType = "Deny"
@@ -435,7 +414,7 @@ func TestCreatePermissionAlternateValidPath(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//TestCreatePermissionsGeneratesErrorInvalidThresholds.
+// TestCreatePermissionsGeneratesErrorInvalidThresholds.
 func TestCreatePermissionsGeneratesErrorInvalidThresholds(t *testing.T) {
 	cases := []struct {
 		threshold int64
@@ -476,7 +455,7 @@ func TestCreatePermissionsGeneratesErrorInvalidThresholds(t *testing.T) {
 	}
 }
 
-//Returns a test SCP Run object.
+// Returns a test SCP Run object.
 func getTestSCPRun() SCPRun {
 	testSCPRun := SCPRun{
 		thresholdLimit:  10,
@@ -486,13 +465,13 @@ func getTestSCPRun() SCPRun {
 	return testSCPRun
 }
 
-//JSONFileDataStub.
+// JSONFileDataStub.
 type jsonFileStub struct {
 	inputData string
 }
 
 // TestFormatServiceName tests that a service name was correctly
-// Formatted
+// Formatted.
 func TestFormatServiceName(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	testSCPRun.serviceType = "Deny"
@@ -523,7 +502,7 @@ func TestFormatServiceName(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestCreateSCP tests that an SCP can be created
+// TestCreateSCP tests that an SCP can be created.
 func TestCreateSCP_IntegrationTest(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	testSCPRun.serviceType = "Deny"
@@ -560,7 +539,7 @@ func TestCreateSCP_IntegrationTest(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//TestSaveSCPFile test saving a scp file.
+// TestSaveSCPFile test saving a scp file.
 func TestSaveSCPFile_IntegrationTest(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	testSCPRun.serviceType = "Deny"
@@ -609,7 +588,7 @@ func TestSaveSCPFile_IntegrationTest(t *testing.T) {
 }
 
 // TestSaveSCPFileGeneratesError tests an error is
-// Created
+// Created.
 func TestSaveSCPFileError_IntegrationTest(t *testing.T) {
 	testSCPRun := getTestSCPRun()
 	testSCPRun.serviceType = "Deny"
@@ -657,14 +636,14 @@ func TestSaveSCPFileError_IntegrationTest(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-// TestCreateRun creation of a scp run
+// TestCreateRun creation of a scp run.
 func TestCreateRun(t *testing.T) {
 	conf := getTestConf()
 	testRun := new(conf)
 	assert.NotNil(t, testRun)
 }
 
-//TestRunEndToEnd_IntegrationTest tests complete run.
+// TestRunEndToEnd_IntegrationTest tests complete run.
 func TestRunEndToEnd_IntegrationTest(t *testing.T) {
 	progName := "scpgenerator"
 	configArg := []string{"testFile", "Deny", "10"}
@@ -686,7 +665,7 @@ func (j jsonFileStub) getData() []byte {
 	return []byte(j.inputData)
 }
 
-//getScannerMessage returns a full scanner message.
+// getScannerMessage returns a full scanner message.
 func getCorruptedScannerMessage() string {
 	scannerMessage := `
 [
@@ -741,7 +720,7 @@ func getCorruptedScannerMessage() string {
 	return scannerMessage
 }
 
-//getScannerMessage returns a full scanner message.
+// getScannerMessage returns a full scanner message.
 func getScannerMessage() string {
 	scannerMessage := `
 [
@@ -806,7 +785,7 @@ func getScannerMessage() string {
 	return scannerMessage
 }
 
-//getTestAllowListFilteredData returns a filtered data set.
+// getTestAllowListFilteredData returns a filtered data set.
 func getTestAllowListFilteredData() map[string]int64 {
 	filteredData := map[string]int64{
 		"LookupEvents":                     10,
@@ -823,7 +802,7 @@ func getTestAllowListFilteredData() map[string]int64 {
 }
 
 // getTestReport returns a report in the
-// form of a serialised json document
+// form of a serialised json document.
 func getTestReport() *[]Report {
 	jsonData := getScannerMessage()
 	testStub := jsonFileStub{inputData: jsonData}

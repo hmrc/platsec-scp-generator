@@ -16,15 +16,19 @@ const (
 	exitFail = 1
 )
 
-//Package level vars to allow patch testing.
-type fileLoader func(filename string) ([]byte, error)
-type writeSCP func(filename string, data []byte, perm fs.FileMode) error
+// Package level vars to allow patch testing.
+type (
+	fileLoader func(filename string) ([]byte, error)
+	writeSCP   func(filename string, data []byte, perm fs.FileMode) error
+)
 
-var loadFile fileLoader = ioutil.ReadFile
-var saveSCPFile writeSCP = ioutil.WriteFile
-var ErrInvalidParameters = errors.New("input parameters missing")
-var ErrInvalidThreshold = errors.New("threshold limit must be greater than zero")
-var ErrInvalidSCPType = errors.New("scp type must be Allow or Deny")
+var (
+	loadFile             fileLoader = ioutil.ReadFile
+	saveSCPFile          writeSCP   = ioutil.WriteFile
+	ErrInvalidParameters            = errors.New("input parameters missing")
+	ErrInvalidThreshold             = errors.New("threshold limit must be greater than zero")
+	ErrInvalidSCPType               = errors.New("scp type must be Allow or Deny")
+)
 
 type SCPRun struct {
 	scannerFilename string
@@ -120,9 +124,11 @@ func main() {
 }
 
 func new(c *SCPConfig) *SCPRun {
-	scpRun := SCPRun{scannerFilename: *c.scannerFilename(),
-		serviceType:    *c.serviceType(),
-		thresholdLimit: *c.thresholdLimit()}
+	scpRun := SCPRun{
+		scannerFilename: c.ScannerFile,
+		serviceType:     c.SCPType,
+		thresholdLimit:  c.Threshold,
+	}
 
 	return &scpRun
 }
@@ -173,7 +179,7 @@ func run(executionRun *SCPRun) error {
 }
 
 // SCPConfig is a struct that will hold the
-// flag values
+// flag values.
 type SCPConfig struct {
 	SCPType     string
 	ScannerFile string
@@ -185,7 +191,7 @@ func parseFlags(progname string, args []string) (config *SCPConfig,
 	output string, err error) {
 	flags := flag.NewFlagSet(progname, flag.ContinueOnError)
 
-	var buf bytes.Buffer
+	buf := bytes.Buffer{}
 	var c SCPConfig
 
 	flags.SetOutput(&buf)
@@ -203,21 +209,7 @@ func parseFlags(progname string, args []string) (config *SCPConfig,
 	return &c, buf.String(), nil
 }
 
-// ServiceType returns the SCP Type parameter
-func (s *SCPConfig) serviceType() *string {
-	return &s.SCPType
-}
-
-//ScannerFilename returns the File.
-func (s *SCPConfig) scannerFilename() *string {
-	return &s.ScannerFile
-}
-
-func (s *SCPConfig) thresholdLimit() *int64 {
-	return &s.Threshold
-}
-
-//Report represents a structure for a scp.
+// Report represents a structure for a scp.
 type Report struct {
 	Account struct {
 		Identifier  string `json:"identifier"`
@@ -237,7 +229,7 @@ type Report struct {
 	} `json:"results"`
 }
 
-//SCP is a struct representing a AWS SCP document.
+// SCP is a struct representing a AWS SCP document.
 type SCP struct {
 	Version   string `json:"Version"`
 	Statement struct {
@@ -254,7 +246,7 @@ func serviceName(eventSource string) string {
 	return s[0]
 }
 
-//LoadScannerFile loads the scanner json report.
+// LoadScannerFile loads the scanner json report.
 func loadScannerFile(scannerFileName string) ([]byte, error) {
 	scannerData, err := loadFile(scannerFileName)
 	if err != nil {
@@ -286,7 +278,7 @@ func generateReport(jsonData []byte) (*[]Report, error) {
 }
 
 // generateList a list of all the api calls
-// That are above and equal to the threshold
+// That are above and equal to the threshold.
 func generateList(threshold int64, reportData *Report, apiEval func(int64, int64) bool) (map[string]int64, error) {
 	if threshold <= 0 {
 		return nil, ErrInvalidThreshold
@@ -301,7 +293,7 @@ func generateList(threshold int64, reportData *Report, apiEval func(int64, int64
 	return allowList, nil
 }
 
-//greaterThan evaluates the value.
+// greaterThan evaluates the value.
 func greaterThan(value int64, threshold int64) bool {
 	isGreaterThan := false
 	if value >= threshold {
@@ -310,7 +302,7 @@ func greaterThan(value int64, threshold int64) bool {
 	return isGreaterThan
 }
 
-//lessThan evaluates the value.
+// lessThan evaluates the value.
 func lessThan(value int64, threshold int64) bool {
 	isLessThan := false
 	if value < threshold {
@@ -319,7 +311,7 @@ func lessThan(value int64, threshold int64) bool {
 	return isLessThan
 }
 
-//generateSCP generates an SCP.
+// generateSCP generates an SCP.
 func generateSCP(scpType string, awsService string, permissionData map[string]int64) (scp SCP) {
 	scp = SCP{}
 	scp.Version = "2012-10-17"
@@ -332,7 +324,7 @@ func generateSCP(scpType string, awsService string, permissionData map[string]in
 	return scp
 }
 
-//saveSCP saves the scp file.
+// saveSCP saves the scp file.
 func saveSCP(scp SCP) error {
 	jsonData, _ := json.MarshalIndent(scp, "", " ")
 	err := saveSCPFile("testSCP.json", jsonData, 0644)
@@ -340,7 +332,7 @@ func saveSCP(scp SCP) error {
 }
 
 // checkSCPParameter checks that SCP parameter was
-// Entered with correct value
+// Entered with correct value.
 func checkSCPParameter(scpType string) bool {
 	s := strings.ToLower(scpType)
 	if s == "allow" || s == "deny" {
