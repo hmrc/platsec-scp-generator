@@ -5,6 +5,12 @@ DOCKER_RUN = docker run \
 	--workdir "${PWD}" \
 	platsecscpgenerator:local
 
+GO_LINT = docker run\
+ 		--rm \
+		--volume "${PWD}:${PWD}" \
+		--workdir "${PWD}" \
+		golangci/golangci-lint:v1.39.0 golangci-lint
+
 .PHONY: build
 build:
 	@docker build \
@@ -12,18 +18,22 @@ build:
 		--tag platsecscpgenerator:local \
 		. > /dev/null
 
-.PHONY: format
-format: build
-	@$(DOCKER_RUN) go fmt .
+.PHONY: fmt
+fmt: build
+	@$(DOCKER_RUN) gofmt -l -s -w .
+
+.PHONY: fmt-check
+fmt-check: build
+	@$(DOCKER_RUN) gofmt -l -s -d .
 
 .PHONY: test
 test: build
 	@$(DOCKER_RUN) go test -cover -v .
 
-.PHONY: lint
-lint:
-	@docker run\
- 		--rm \
-		--volume "${PWD}:${PWD}" \
-    	--workdir "${PWD}" \
-        golangci/golangci-lint:v1.39.0 golangci-lint run
+.PHONY: lint-fix
+lint-fix:
+	@$(GO_LINT) run --fix --issues-exit-code 0
+
+.PHONY: lint-check
+lint-check:
+	@$(GO_LINT) run
