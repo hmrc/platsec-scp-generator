@@ -1,39 +1,36 @@
-DOCKER_RUN = docker run \
+DOCKER = docker run \
 	--interactive \
 	--rm \
 	--volume "${PWD}:${PWD}" \
-	--workdir "${PWD}" \
-	platsecscpgenerator:local
+	--workdir "${PWD}"
 
-GO_LINT = docker run\
- 		--rm \
-		--volume "${PWD}:${PWD}" \
-		--workdir "${PWD}" \
-		golangci/golangci-lint:v1.39.0 golangci-lint
-
-.PHONY: build
-build:
+.PHONY: go gofmt golangci-lint
+go gofmt golangci-lint:
 	@docker build \
-		--build-arg PWD \
-		--tag platsecscpgenerator:local \
-		. > /dev/null
+		--tag $@ \
+		--build-arg "user_id=$(shell id -u)" \
+		--build-arg "group_id=$(shell id -g)" \
+		--build-arg "home=${HOME}" \
+		--build-arg "workdir=${PWD}" \
+		--target $@ . \
+		>/dev/null
 
 .PHONY: fmt
-fmt: build
-	@$(DOCKER_RUN) gofmt -l -s -w .
+fmt: gofmt
+	@$(DOCKER) gofmt -l -s -w .
 
 .PHONY: fmt-check
-fmt-check: build
-	@$(DOCKER_RUN) gofmt -l -s -d .
+fmt-check: gofmt
+	@$(DOCKER) gofmt -l -s -d .
 
 .PHONY: test
-test: build
-	@$(DOCKER_RUN) go test -cover -v .
+test: go
+	@$(DOCKER) go test -cover .
 
-.PHONY: lint-fix
-lint-fix:
-	@$(GO_LINT) run --fix --issues-exit-code 0
+.PHONY: lint
+lint: golangci-lint
+	@$(DOCKER) golangci-lint run --fix --issues-exit-code 0
 
 .PHONY: lint-check
-lint-check:
-	@$(GO_LINT) run
+lint-check: golangci-lint
+	@$(DOCKER) golangci-lint run --color always
