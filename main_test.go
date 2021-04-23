@@ -106,9 +106,9 @@ func TestGenerateAllowListData(t *testing.T) {
 	apiFn := greaterThan
 
 	cases := []struct {
-		threshold int64
+		threshold int
 		report    Report
-		expected  int64
+		expected  int
 	}{
 		{
 			threshold: 10,
@@ -130,7 +130,7 @@ func TestGenerateAllowListData(t *testing.T) {
 	for _, c := range cases {
 		allowList, _ := generateList(c.threshold, &c.report, apiFn)
 		assert.NotNil(t, allowList)
-		assert.Equal(t, c.expected, int64(len(allowList)))
+		assert.Equal(t, c.expected, int(len(allowList)))
 	}
 }
 
@@ -143,9 +143,9 @@ func TestGenerateDenyListData(t *testing.T) {
 	apiFn := lessThan
 
 	cases := []struct {
-		threshold int64
+		threshold int
 		report    Report
-		expected  int64
+		expected  int
 	}{
 		{
 			threshold: 10,
@@ -167,7 +167,7 @@ func TestGenerateDenyListData(t *testing.T) {
 	for _, c := range cases {
 		denyList, _ := generateList(c.threshold, &c.report, apiFn)
 		assert.NotNil(t, denyList)
-		assert.Equal(t, c.expected, int64(len(denyList)))
+		assert.Equal(t, c.expected, int(len(denyList)))
 	}
 }
 
@@ -180,7 +180,7 @@ func TestGenerateAllowListGeneratesError(t *testing.T) {
 	apiFn := greaterThan
 
 	cases := []struct {
-		threshold int64
+		threshold int
 		report    Report
 		expected  error
 	}{
@@ -417,7 +417,7 @@ func TestCreatePermissionAlternateValidPath(t *testing.T) {
 // TestCreatePermissionsGeneratesErrorInvalidThresholds.
 func TestCreatePermissionsGeneratesErrorInvalidThresholds(t *testing.T) {
 	cases := []struct {
-		threshold int64
+		threshold int
 		expected  error
 	}{
 		{
@@ -786,8 +786,8 @@ func getScannerMessage() string {
 }
 
 // getTestAllowListFilteredData returns a filtered data set.
-func getTestAllowListFilteredData() map[string]int64 {
-	filteredData := map[string]int64{
+func getTestAllowListFilteredData() map[string]int {
+	filteredData := map[string]int{
 		"LookupEvents":                     10,
 		"ListTags":                         1656,
 		"GetEventSelectors":                12,

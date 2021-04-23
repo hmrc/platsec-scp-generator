@@ -6,9 +6,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -34,10 +36,10 @@ type SCPRun struct {
 	scannerFilename string
 	serviceType     string
 	serviceName     string
-	thresholdLimit  int64
+	thresholdLimit  int
 	usageData       []byte
 	reports         *[]Report
-	permissionSet   map[string]int64
+	permissionSet   map[string]int
 	scp             SCP
 }
 
@@ -69,7 +71,7 @@ func (s *SCPRun) getReport() error {
 }
 
 func (s *SCPRun) createPermissions() error {
-	type fnEval = func(int64, int64) bool
+	type fnEval = func(int, int) bool
 	var apiFn fnEval
 
 	switch s.serviceType {
@@ -183,7 +185,7 @@ func run(executionRun *SCPRun) error {
 type SCPConfig struct {
 	SCPType     string
 	ScannerFile string
-	Threshold   int64
+	Threshold   int
 	args        []string
 }
 
@@ -197,7 +199,7 @@ func parseFlags(progname string, args []string) (config *SCPConfig,
 	flags.SetOutput(&buf)
 	flag.StringVar(&c.SCPType, "type", "Allow", "can be either Allow or Deny")
 	flag.StringVar(&c.ScannerFile, "fileloc", "./s3_usage.json", "file location of scanner usage report")
-	flag.Int64Var(&c.Threshold, "threshold", 10, "decision threshold")
+	flag.IntVar(&c.Threshold, "threshold", 10, "decision threshold")
 
 	err = flags.Parse(args)
 
@@ -270,7 +272,7 @@ type Report struct {
 		Service      string `json:"event_source"`
 		ServiceUsage []struct {
 			EventName string `json:"event_name"`
-			Count     int64  `json:"count"`
+			Count     int    `json:"count"`
 		} `json:"service_usage"`
 	} `json:"results"`
 }
@@ -325,12 +327,12 @@ func generateReport(jsonData []byte) (*[]Report, error) {
 
 // generateList a list of all the api calls
 // That are above and equal to the threshold.
-func generateList(threshold int64, reportData *Report, apiEval func(int64, int64) bool) (map[string]int64, error) {
+func generateList(threshold int, reportData *Report, apiEval func(int, int) bool) (map[string]int, error) {
 	if threshold <= 0 {
 		return nil, ErrInvalidThreshold
 	}
 
-	allowList := map[string]int64{}
+	allowList := map[string]int{}
 	for _, v := range reportData.Results.ServiceUsage {
 		if apiEval(v.Count, threshold) {
 			allowList[v.EventName] = v.Count
@@ -340,7 +342,7 @@ func generateList(threshold int64, reportData *Report, apiEval func(int64, int64
 }
 
 // greaterThan evaluates the value.
-func greaterThan(value int64, threshold int64) bool {
+func greaterThan(value int, threshold int) bool {
 	isGreaterThan := false
 	if value >= threshold {
 		isGreaterThan = true
@@ -349,7 +351,7 @@ func greaterThan(value int64, threshold int64) bool {
 }
 
 // lessThan evaluates the value.
-func lessThan(value int64, threshold int64) bool {
+func lessThan(value int, threshold int) bool {
 	isLessThan := false
 	if value < threshold {
 		isLessThan = true
@@ -358,7 +360,7 @@ func lessThan(value int64, threshold int64) bool {
 }
 
 // generateSCP generates an SCP.
-func generateSCP(scpType string, awsService string, permissionData map[string]int64) (scp SCP) {
+func generateSCP(scpType string, awsService string, permissionData map[string]int) (scp SCP) {
 	scp = SCP{}
 	scp.Version = "2012-10-17"
 	for k := range permissionData {
