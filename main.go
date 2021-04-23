@@ -209,6 +209,52 @@ func parseFlags(progname string, args []string) (config *SCPConfig,
 	return &c, buf.String(), nil
 }
 
+func parseFlags2(args []string, output io.Writer) (config *SCPConfig, err error) {
+	var policyType string
+	var file string
+	var threshold int
+
+	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
+	flags.SetOutput(output)
+
+	flags.Func("file", "path to Platsec AWS Scanner output JSON", func(s string) error {
+		file = s
+		if _, err := os.Stat(file); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	flags.Func("type", "Allow or Deny", func(s string) error {
+		policyType = s
+		if !(policyType == "Allow" || policyType == "Deny") {
+			return fmt.Errorf("policy type can be either 'Allow' or 'Deny', got: %s", s)
+		}
+
+		return nil
+	})
+
+	flags.Func("threshold", "Integer value which determines Action inclusion/exclusion", func(s string) error {
+		threshold, err = strconv.Atoi(s)
+		if err != nil {
+			return fmt.Errorf("cannot convert threshold to an integer, got %s", s)
+		}
+
+		if threshold <= 0 {
+			return fmt.Errorf("threshold has to be greater than zero, got %s", s)
+		}
+
+		return nil
+	})
+
+	if err = flags.Parse(args[1:]); err != nil {
+		return nil, err
+	}
+
+	return &SCPConfig{SCPType: policyType, ScannerFile: file, Threshold: threshold}, nil
+}
+
 // Report represents a structure for a scp.
 type Report struct {
 	Account struct {
