@@ -4,8 +4,8 @@ DOCKER = docker run \
 	--volume "${PWD}:${PWD}" \
 	--workdir "${PWD}"
 
-.PHONY: go gofmt golangci-lint
-go gofmt golangci-lint:
+.PHONY: bash go gofmt golangci-lint
+bash go gofmt golangci-lint:
 	@docker build \
 		--tag $@ \
 		--build-arg "user_id=$(shell id -u)" \
@@ -24,8 +24,9 @@ fmt-check: gofmt
 	@$(DOCKER) gofmt -l -s -d .
 
 .PHONY: test
-test: go
+test: go bash
 	@$(DOCKER) go test -cover .
+	@$(DOCKER) bash e2e.test.sh
 
 .PHONY: lint
 lint: golangci-lint

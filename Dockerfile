@@ -35,6 +35,9 @@ COPY go.mod go.sum ${workdir}/
 RUN go mod download
 ENTRYPOINT [ "/usr/local/go/bin/go" ]
 
+FROM go AS bash
+ENTRYPOINT [ "/bin/bash" ]
+
 FROM go AS golangci-lint
 ENV GOLANGCI_LINT_VERSION=1.39.0
 SHELL [ "/bin/bash", "-euo", "pipefail", "-c" ]
