@@ -127,7 +127,7 @@ func parseFlags(args []string, output io.Writer) (config *Config, err error) {
 		return nil
 	})
 
-	if err = flags.Parse(args[1:]); err != nil {
+	if err := flags.Parse(args[1:]); err != nil {
 		return nil, err
 	}
 
