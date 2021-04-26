@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -232,16 +233,21 @@ func parseFlags(args []string, output io.Writer) (config *SCPConfig, err error) 
 		return nil, err
 	}
 
+	defaultsOutput := &bytes.Buffer{}
+
+	flags.SetOutput(defaultsOutput)
+	flags.PrintDefaults()
+
 	if policyType == "" {
-		return nil, fmt.Errorf("-type is a mandatory argument")
+		return nil, fmt.Errorf("-type is a mandatory argument\n\nUsage of %s:\n%s", args[0], defaultsOutput.String())
 	}
 
 	if file == "" {
-		return nil, fmt.Errorf("-file is a mandatory argument")
+		return nil, fmt.Errorf("-file is a mandatory argument\n\nUsage of %s:\n%s", args[0], defaultsOutput.String())
 	}
 
 	if threshold == 0 {
-		return nil, fmt.Errorf("-threshold is a mandatory argument")
+		return nil, fmt.Errorf("-threshold is a mandatory argument\n\nUsage of %s:\n%s", args[0], defaultsOutput.String())
 	}
 
 	return &SCPConfig{SCPType: policyType, ScannerFile: file, Threshold: threshold}, nil
