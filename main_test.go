@@ -837,3 +837,109 @@ func Test_parseFlags(t *testing.T) {
 		})
 	}
 }
+
+func Test_loadServiceUsageReport(t *testing.T) {
+	type args struct {
+		file string
+	}
+	tests := []struct {
+		name        string
+		args        args
+		wantService string
+		wantUsage   []ServiceUsage
+		wantErr     bool
+	}{
+		{
+			"load valid file",
+			args{"testdata/s3_scanner_report.json"},
+			"s3",
+			[]ServiceUsage{{"ListBuckets", 145}, {"GetObject", 231}, {"GetBucketNotification", 1}},
+			false,
+		},
+		{
+			"fail to load not exiting file",
+			args{"testdata/does-not-exist.json"},
+			"",
+			nil,
+			true,
+		},
+		{
+			"fail to load invalid JSON",
+			args{"testdata/invalid.json"},
+			"",
+			nil,
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotService, gotUsage, err := loadServiceUsageReport(tt.args.file)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("loadServiceUsageReport() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotService != tt.wantService {
+				t.Errorf("loadServiceUsageReport() gotService = %v, want %v", gotService, tt.wantService)
+			}
+			if !reflect.DeepEqual(gotUsage, tt.wantUsage) {
+				t.Errorf("loadServiceUsageReport() gotUsage = %v, want %v", gotUsage, tt.wantUsage)
+			}
+		})
+	}
+}
+
+func Test_generatePolicy(t *testing.T) {
+	type args struct {
+		config  *SCPConfig
+		service string
+		usage   []ServiceUsage
+	}
+	tests := []struct {
+		name string
+		args args
+		want *SCP
+	}{
+		{
+			"success for Allow over treshold 10 included",
+			args{
+				&SCPConfig{SCPType: "Allow", Threshold: 10},
+				"s3",
+				[]ServiceUsage{{"ListBuckets", 145}, {"GetObject", 10}, {"GetBucketNotification", 1}},
+			},
+			&SCP{
+				Version: "2012-10-17",
+				Statement: Statement{
+					Effect:   "Allow",
+					Resource: "*",
+					Action:   []string{"s3:ListBuckets", "s3:GetObject"},
+				},
+			},
+		},
+		{
+			"success for Deny over treshold 10 included",
+			args{
+				&SCPConfig{SCPType: "Deny", Threshold: 10},
+				"s3",
+				[]ServiceUsage{{"ListBuckets", 145}, {"GetObject", 10}, {"GetBucketNotification", 1}},
+			},
+			&SCP{
+				Version: "2012-10-17",
+				Statement: Statement{
+					Effect:   "Deny",
+					Resource: "*",
+					Action:   []string{"s3:GetBucketNotification"},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := generatePolicy(tt.args.config, tt.args.service, tt.args.usage)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("generatePolicy() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

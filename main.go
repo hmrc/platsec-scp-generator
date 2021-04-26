@@ -103,7 +103,7 @@ func (s *SCPRun) saveSCP() error {
 }
 
 func main() {
-	if err := run(os.Args, os.Stderr); err != nil {
+	if err := run(os.Args, os.Stdout, os.Stderr); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(exitFail)
 	}
@@ -121,47 +121,20 @@ func new(c *SCPConfig) *SCPRun {
 
 // run is an abstraction function that allows
 // us to test codebase.
-func run(args []string, errOutput io.Writer) error {
-	conf, err := parseFlags(args, errOutput)
+func run(args []string, stdOutput, errOutput io.Writer) error {
+	config, err := parseFlags(args, errOutput)
 	if err != nil {
 		return err
 	}
 
-	executionRun := new(conf)
-	err = executionRun.getUsageData()
-
+	service, usage, err := loadServiceUsageReport(config.ScannerFile)
 	if err != nil {
 		return err
 	}
 
-	err = executionRun.getReport()
-	if err != nil {
-		return err
-	}
+	policy := generatePolicy(config, service, usage)
 
-	err = executionRun.createPermissions()
-
-	if err != nil {
-		return err
-	}
-
-	err = executionRun.formatServiceName()
-
-	if err != nil {
-		return err
-	}
-
-	err = executionRun.createSCP()
-
-	if err != nil {
-		return err
-	}
-
-	err = executionRun.saveSCP()
-
-	if err != nil {
-		return err
-	}
+	fmt.Fprintln(stdOutput, policy)
 	return nil
 }
 
@@ -172,6 +145,43 @@ type SCPConfig struct {
 	ScannerFile string
 	Threshold   int
 	args        []string
+}
+
+func generatePolicy(config *SCPConfig, service string, usage []ServiceUsage) *SCP {
+	actions := []string{}
+
+	for _, record := range usage {
+		if config.SCPType == "Allow" && record.Count >= config.Threshold {
+			actions = append(actions, fmt.Sprintf("%s:%s", service, record.EventName))
+		}
+
+		if config.SCPType == "Deny" && record.Count < config.Threshold {
+			actions = append(actions, fmt.Sprintf("%s:%s", service, record.EventName))
+		}
+	}
+
+	return &SCP{
+		Version: "2012-10-17",
+		Statement: Statement{
+			Effect:   config.SCPType,
+			Resource: "*",
+			Action:   actions,
+		},
+	}
+}
+
+func loadServiceUsageReport(file string) (service string, usage []ServiceUsage, err error) {
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to read content of %s, got: %w", file, err)
+	}
+
+	var report []Report
+	if err := json.Unmarshal(content, &report); err != nil {
+		return "", nil, fmt.Errorf("failed to parse content of %s, got: %w", file, err)
+	}
+
+	return strings.Split(report[0].Results.Service, ".")[0], report[0].Results.ServiceUsage, nil
 }
 
 func parseFlags(args []string, output io.Writer) (config *SCPConfig, err error) {
@@ -202,7 +212,7 @@ func parseFlags(args []string, output io.Writer) (config *SCPConfig, err error) 
 		return nil
 	})
 
-	flags.Func("threshold", "Integer value which determines Action inclusion/exclusion", func(s string) error {
+	flags.Func("threshold", "integer value which determines Action inclusion/exclusion", func(s string) error {
 		threshold, err = strconv.Atoi(s)
 		if err != nil {
 			return fmt.Errorf("cannot convert threshold to an integer")
@@ -239,34 +249,35 @@ func parseFlags(args []string, output io.Writer) (config *SCPConfig, err error) 
 	return &SCPConfig{SCPType: policyType, ScannerFile: file, Threshold: threshold}, nil
 }
 
+type ServiceUsage struct {
+	EventName string `json:"event_name"`
+	Count     int    `json:"count"`
+}
+
 // Report represents a structure for a scp.
 type Report struct {
-	Account struct {
-		Identifier  string `json:"identifier"`
-		AccountName string `json:"name"`
-	} `json:"account"`
-	Description string `json:"description"`
-	Partition   struct {
-		Year  string `json:"year"`
-		Month string `json:"month"`
-	}
 	Results struct {
-		Service      string `json:"event_source"`
-		ServiceUsage []struct {
-			EventName string `json:"event_name"`
-			Count     int    `json:"count"`
-		} `json:"service_usage"`
+		Service      string         `json:"event_source"`
+		ServiceUsage []ServiceUsage `json:"service_usage"`
 	} `json:"results"`
+}
+
+type Statement struct {
+	Effect   string   `json:"Effect"`
+	Action   []string `json: Action`
+	Resource string   `json:"Resource"`
 }
 
 // SCP is a struct representing a AWS SCP document.
 type SCP struct {
-	Version   string `json:"Version"`
-	Statement struct {
-		Effect string `json:"Effect"`
-		Action []string
-	} `json:"Statement"`
-	Resource string `json:"Resource"`
+	Version   string    `json:"Version"`
+	Statement Statement `json:"Statement"`
+}
+
+func (p SCP) String() string {
+	jsonData, _ := json.MarshalIndent(p, "", "    ")
+
+	return fmt.Sprint(string(jsonData))
 }
 
 // ServiceName returns a formatted service name
@@ -349,8 +360,9 @@ func generateSCP(scpType string, awsService string, permissionData map[string]in
 		p := awsService + ":" + k
 		scp.Statement.Action = append(scp.Statement.Action, p)
 		scp.Statement.Effect = scpType
+		scp.Statement.Resource = "*"
 	}
-	scp.Resource = "*"
+
 	return scp
 }
 
