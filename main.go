@@ -43,15 +43,6 @@ type SCPRun struct {
 	scp             SCP
 }
 
-// validateService checks that the correct apply or
-// deny value was supplied.
-func (s *SCPRun) validateService() (bool, error) {
-	if !checkSCPParameter(s.serviceType) {
-		return false, ErrInvalidSCPType
-	}
-	return true, nil
-}
-
 func (s *SCPRun) getUsageData() error {
 	usageData, err := loadScannerFile(s.scannerFilename)
 	if err != nil {
@@ -137,11 +128,6 @@ func run(args []string, errOutput io.Writer) error {
 	}
 
 	executionRun := new(conf)
-	_, err = executionRun.validateService()
-	if err != nil {
-		return err
-	}
-
 	err = executionRun.getUsageData()
 
 	if err != nil {
@@ -373,14 +359,4 @@ func saveSCP(scp SCP) error {
 	jsonData, _ := json.MarshalIndent(scp, "", " ")
 	err := saveSCPFile("testSCP.json", jsonData, 0644)
 	return err
-}
-
-// checkSCPParameter checks that SCP parameter was
-// Entered with correct value.
-func checkSCPParameter(scpType string) bool {
-	s := strings.ToLower(scpType)
-	if s == "allow" || s == "deny" {
-		return true
-	}
-	return false
 }
