@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -820,4 +823,102 @@ func getTestSCP(scpType string, awsService string) SCP {
 func getTestConf() *SCPConfig {
 	scpConf := SCPConfig{SCPType: "Deny", ScannerFile: "TestFile", Threshold: 10}
 	return &scpConf
+}
+
+func Test_parseFlags2(t *testing.T) {
+	tests := []struct {
+		name                string
+		args                []string
+		wantConfig          *SCPConfig
+		wantOutputErrorLine string
+		wantErr             bool
+	}{
+		{
+			"valid arguments Allow",
+			[]string{"program_name", "-file", "main_test.go", "-type", "Allow", "-threshold", "10"},
+			&SCPConfig{SCPType: "Allow", ScannerFile: "main_test.go", Threshold: 10},
+			"",
+			false,
+		},
+		{
+			"valid arguments Deny",
+			[]string{"program_name", "-file", "main_test.go", "-type", "Deny", "-threshold", "10"},
+			&SCPConfig{SCPType: "Deny", ScannerFile: "main_test.go", Threshold: 10},
+			"",
+			false,
+		},
+		{
+			"invalid file",
+			[]string{"program_name", "-file", "not-really-a-file", "-type", "Allow", "-threshold", "10"},
+			nil,
+			"invalid value \"not-really-a-file\" for flag -file: stat not-really-a-file: no such file or directory",
+			true,
+		},
+		{
+			"invalid type",
+			[]string{"program_name", "-file", "main_test.go", "-type", "permit", "-threshold", "10"},
+			nil,
+			"invalid value \"permit\" for flag -type: policy type can be either 'Allow' or 'Deny'",
+			true,
+		},
+		{
+			"negative treshold",
+			[]string{"program_name", "-file", "main_test.go", "-type", "Allow", "-threshold", "-99"},
+			nil,
+			"invalid value \"-99\" for flag -threshold: threshold has to be greater than zero",
+			true,
+		},
+		{
+			"treshold is not integer",
+			[]string{"program_name", "-file", "main_test.go", "-type", "Allow", "-threshold", "ten"},
+			nil,
+			"invalid value \"ten\" for flag -threshold: cannot convert threshold to an integer",
+			true,
+		},
+		{
+			"invalid args",
+			[]string{"program_name", "-Files", "main_test.go", "-type", "Allow", "-threshold", "10"},
+			nil,
+			"flag provided but not defined: -Files",
+			true,
+		},
+		{
+			"missing file arg",
+			[]string{"program_name", "-type", "Allow", "-threshold", "10"},
+			nil,
+			"",
+			true,
+		},
+		{
+			"missing type arg",
+			[]string{"program_name", "-file", "main_test.go", "-threshold", "10"},
+			nil,
+			"",
+			true,
+		},
+		{
+			"missing threshold arg",
+			[]string{"program_name", "-file", "main_test.go", "-type", "Deny"},
+			nil,
+			"",
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output := &bytes.Buffer{}
+			gotConfig, err := parseFlags2(tt.args, output)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseFlags2() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotConfig, tt.wantConfig) {
+				t.Errorf("parseFlags2() = %+v, want %+v", gotConfig, tt.wantConfig)
+			}
+			if gotOutputErrorLine := strings.Split(output.String(), "\n")[0]; gotOutputErrorLine != tt.wantOutputErrorLine {
+				t.Errorf("parseFlags2() = %v, want %v", gotOutputErrorLine, tt.wantOutputErrorLine)
+			}
+		})
+	}
 }

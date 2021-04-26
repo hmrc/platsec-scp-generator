@@ -212,9 +212,11 @@ func parseFlags(progname string, args []string) (config *SCPConfig,
 }
 
 func parseFlags2(args []string, output io.Writer) (config *SCPConfig, err error) {
-	var policyType string
-	var file string
-	var threshold int
+	var (
+		policyType string
+		file       string
+		threshold  int
+	)
 
 	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	flags.SetOutput(output)
@@ -231,7 +233,7 @@ func parseFlags2(args []string, output io.Writer) (config *SCPConfig, err error)
 	flags.Func("type", "Allow or Deny", func(s string) error {
 		policyType = s
 		if !(policyType == "Allow" || policyType == "Deny") {
-			return fmt.Errorf("policy type can be either 'Allow' or 'Deny', got: %s", s)
+			return fmt.Errorf("policy type can be either 'Allow' or 'Deny'")
 		}
 
 		return nil
@@ -240,11 +242,11 @@ func parseFlags2(args []string, output io.Writer) (config *SCPConfig, err error)
 	flags.Func("threshold", "Integer value which determines Action inclusion/exclusion", func(s string) error {
 		threshold, err = strconv.Atoi(s)
 		if err != nil {
-			return fmt.Errorf("cannot convert threshold to an integer, got %s", s)
+			return fmt.Errorf("cannot convert threshold to an integer")
 		}
 
 		if threshold <= 0 {
-			return fmt.Errorf("threshold has to be greater than zero, got %s", s)
+			return fmt.Errorf("threshold has to be greater than zero")
 		}
 
 		return nil
@@ -252,6 +254,18 @@ func parseFlags2(args []string, output io.Writer) (config *SCPConfig, err error)
 
 	if err = flags.Parse(args[1:]); err != nil {
 		return nil, err
+	}
+
+	if policyType == "" {
+		return nil, fmt.Errorf("-type is a mandatory argument")
+	}
+
+	if file == "" {
+		return nil, fmt.Errorf("-file is a mandatory argument")
+	}
+
+	if threshold == 0 {
+		return nil, fmt.Errorf("-threshold is a mandatory argument")
 	}
 
 	return &SCPConfig{SCPType: policyType, ScannerFile: file, Threshold: threshold}, nil
