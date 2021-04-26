@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -112,17 +111,10 @@ func (s *SCPRun) saveSCP() error {
 }
 
 func main() {
-	conf, output, err := parseFlags(os.Args[0], os.Args[1:])
-	if err == flag.ErrHelp {
-		fmt.Fprintln(os.Stderr, exitFail)
+	if err := run(os.Args, os.Stderr); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(exitFail)
 	}
-
-	r := new(conf)
-	if err := run(r); err != nil {
-		fmt.Fprintln(os.Stderr, exitFail)
-	}
-
-	fmt.Println(output)
 }
 
 func new(c *SCPConfig) *SCPRun {
@@ -137,8 +129,14 @@ func new(c *SCPConfig) *SCPRun {
 
 // run is an abstraction function that allows
 // us to test codebase.
-func run(executionRun *SCPRun) error {
-	_, err := executionRun.validateService()
+func run(args []string, errOutput io.Writer) error {
+	conf, err := parseFlags(args, errOutput)
+	if err != nil {
+		return err
+	}
+
+	executionRun := new(conf)
+	_, err = executionRun.validateService()
 	if err != nil {
 		return err
 	}
@@ -189,29 +187,7 @@ type SCPConfig struct {
 	args        []string
 }
 
-func parseFlags(progname string, args []string) (config *SCPConfig,
-	output string, err error) {
-	flags := flag.NewFlagSet(progname, flag.ContinueOnError)
-
-	buf := bytes.Buffer{}
-	var c SCPConfig
-
-	flags.SetOutput(&buf)
-	flag.StringVar(&c.SCPType, "type", "Allow", "can be either Allow or Deny")
-	flag.StringVar(&c.ScannerFile, "fileloc", "./s3_usage.json", "file location of scanner usage report")
-	flag.IntVar(&c.Threshold, "threshold", 10, "decision threshold")
-
-	err = flags.Parse(args)
-
-	if err != nil {
-		return nil, buf.String(), err
-	}
-
-	c.args = flags.Args()
-	return &c, buf.String(), nil
-}
-
-func parseFlags2(args []string, output io.Writer) (config *SCPConfig, err error) {
+func parseFlags(args []string, output io.Writer) (config *SCPConfig, err error) {
 	var (
 		policyType string
 		file       string
