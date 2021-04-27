@@ -48,8 +48,7 @@ func run(args []string, stdOutput, errOutput io.Writer) error {
 	return nil
 }
 
-// Config is a struct that will hold the
-// flag values.
+// Config is a struct that will hold the flag values.
 type Config struct {
 	policyType  string
 	scannerFile string

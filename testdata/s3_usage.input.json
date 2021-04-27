@@ -1,8 +1,8 @@
 [
   {
     "account": {
-      "identifier": "638924580364",
-      "name": "webops users"
+      "identifier": "01234567890",
+      "name": "my-aws-account"
     },
     "description": "AWS s3 service usage scan",
     "partition": {
