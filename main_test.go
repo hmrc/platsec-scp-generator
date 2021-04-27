@@ -24,11 +24,11 @@ func TestMain(m *testing.M) {
 
 func Test_parseFlags(t *testing.T) {
 	tests := []struct {
-		name                string
-		args                []string
-		wantConfig          *Config
-		wantOutputErrorLine string
-		wantErr             bool
+		name           string
+		args           []string
+		wantConfig     *Config
+		wantStdErrLine string
+		wantErr        bool
 	}{
 		{
 			"valid arguments Allow",
@@ -106,8 +106,8 @@ func Test_parseFlags(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			output := &bytes.Buffer{}
-			gotConfig, err := parseFlags(tt.args, output)
+			stdErr := &bytes.Buffer{}
+			gotConfig, err := parseFlags(tt.args, stdErr)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseFlags() error = %v, wantErr %v", err, tt.wantErr)
 
@@ -116,8 +116,8 @@ func Test_parseFlags(t *testing.T) {
 			if !reflect.DeepEqual(gotConfig, tt.wantConfig) {
 				t.Errorf("parseFlags() = %+v, want %+v", gotConfig, tt.wantConfig)
 			}
-			if gotOutputErrorLine := strings.Split(output.String(), "\n")[0]; gotOutputErrorLine != tt.wantOutputErrorLine {
-				t.Errorf("parseFlags() = %v, want %v", gotOutputErrorLine, tt.wantOutputErrorLine)
+			if gotStdErrLine := strings.Split(stdErr.String(), "\n")[0]; gotStdErrLine != tt.wantStdErrLine {
+				t.Errorf("parseFlags() = %v, want %v", gotStdErrLine, tt.wantStdErrLine)
 			}
 		})
 	}
@@ -279,11 +279,11 @@ func Test_run(t *testing.T) {
 	}
 
 	tests := []struct {
-		name              string
-		args              args
-		wantStdOutputFile string
-		wantErrOutputFile string
-		wantErr           bool
+		name           string
+		args           args
+		wantStdOutFile string
+		wantStdErrFile string
+		wantErr        bool
 	}{
 		{
 			"create Allow policy from valid input",
@@ -317,34 +317,34 @@ func Test_run(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stdOutput := &bytes.Buffer{}
-			errOutput := &bytes.Buffer{}
-			wantStdOutput := ""
-			wantErrOutput := ""
-			if err := run(tt.args.args, stdOutput, errOutput); (err != nil) != tt.wantErr {
+			stdOut := &bytes.Buffer{}
+			stdErr := &bytes.Buffer{}
+			wantStdOut := ""
+			wantStdErr := ""
+			if err := run(tt.args.args, stdOut, stdErr); (err != nil) != tt.wantErr {
 				t.Errorf("run() error = %v, wantErr %v", err, tt.wantErr)
 
 				return
 			}
-			if tt.wantStdOutputFile != "" {
-				content, err := ioutil.ReadFile(tt.wantStdOutputFile)
+			if tt.wantStdOutFile != "" {
+				content, err := ioutil.ReadFile(tt.wantStdOutFile)
 				if err != nil {
 					t.Fatalf("failed to read fixture: %v", err)
 				}
-				wantStdOutput = string(content)
+				wantStdOut = string(content)
 			}
-			if gotStdOutput := stdOutput.String(); gotStdOutput != wantStdOutput {
-				t.Errorf("run() = %v, want %v", gotStdOutput, wantStdOutput)
+			if gotStdOut := stdOut.String(); gotStdOut != wantStdOut {
+				t.Errorf("run() = %v, want %v", gotStdOut, wantStdOut)
 			}
-			if tt.wantErrOutputFile != "" {
-				content, err := ioutil.ReadFile(tt.wantErrOutputFile)
+			if tt.wantStdErrFile != "" {
+				content, err := ioutil.ReadFile(tt.wantStdErrFile)
 				if err != nil {
 					t.Fatalf("failed to read fixture: %v", err)
 				}
-				wantErrOutput = string(content)
+				wantStdErr = string(content)
 			}
-			if gotErrOutput := errOutput.String(); gotErrOutput != wantErrOutput {
-				t.Errorf("run() = %v, want %v", gotErrOutput, wantErrOutput)
+			if gotStdErr := stdErr.String(); gotStdErr != wantStdErr {
+				t.Errorf("run() = %v, want %v", gotStdErr, wantStdErr)
 			}
 		})
 	}

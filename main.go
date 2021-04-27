@@ -32,8 +32,8 @@ func main() {
 	}
 }
 
-func run(args []string, stdOutput, errOutput io.Writer) error {
-	config, err := parseFlags(args, errOutput)
+func run(args []string, stdOut, stdErr io.Writer) error {
+	config, err := parseFlags(args, stdErr)
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func run(args []string, stdOutput, errOutput io.Writer) error {
 		return err
 	}
 
-	fmt.Fprint(stdOutput, generatePolicy(config, service, usage))
+	fmt.Fprint(stdOut, generatePolicy(config, service, usage))
 
 	return nil
 }
@@ -92,7 +92,7 @@ func loadServiceUsageReport(file string) (service string, usage []ServiceUsage, 
 	return strings.Split(report[0].Results.Service, ".")[0], report[0].Results.ServiceUsage, nil
 }
 
-func parseFlags(args []string, output io.Writer) (config *Config, err error) {
+func parseFlags(args []string, stdErr io.Writer) (config *Config, err error) {
 	var (
 		policyType string
 		file       string
@@ -100,7 +100,7 @@ func parseFlags(args []string, output io.Writer) (config *Config, err error) {
 	)
 
 	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
-	flags.SetOutput(output)
+	flags.SetOutput(stdErr)
 
 	flags.Func("file", "path to Platsec AWS Scanner output JSON", func(s string) error {
 		file = s
