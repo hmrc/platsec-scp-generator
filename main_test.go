@@ -70,7 +70,8 @@ func Test_parseFlags(t *testing.T) {
 			"treshold is not integer",
 			[]string{"program_name", "-file", "main_test.go", "-type", "Allow", "-threshold", "ten"},
 			nil,
-			"invalid value \"ten\" for flag -threshold: cannot convert threshold to an integer",
+			"invalid value \"ten\" for flag -threshold: cannot convert threshold: ten to an integer: " +
+				"strconv.Atoi: parsing \"ten\": invalid syntax",
 			true,
 		},
 		{
@@ -138,7 +139,7 @@ func Test_loadServiceUsageReport(t *testing.T) {
 			"load valid file",
 			args{"testdata/s3_usage.input.json"},
 			"s3",
-			[]ServiceUsage{{"ListBuckets", 145}, {"GetObject", 231}, {"GetBucketNotification", 1}},
+			[]ServiceUsage{{"ListBuckets", 10}, {"GetObject", 231}, {"GetBucketNotification", 1}},
 			false,
 		},
 		{
@@ -192,7 +193,7 @@ func Test_generatePolicy(t *testing.T) {
 			args{
 				&Config{policyType: "Allow", threshold: 10},
 				"s3",
-				[]ServiceUsage{{"ListBuckets", 145}, {"GetObject", 10}, {"GetBucketNotification", 1}},
+				[]ServiceUsage{{"ListBuckets", 10}, {"GetObject", 10}, {"GetBucketNotification", 1}},
 			},
 			&SCP{
 				Version: "2012-10-17",
@@ -208,7 +209,7 @@ func Test_generatePolicy(t *testing.T) {
 			args{
 				&Config{policyType: "Deny", threshold: 10},
 				"s3",
-				[]ServiceUsage{{"ListBuckets", 145}, {"GetObject", 10}, {"GetBucketNotification", 1}},
+				[]ServiceUsage{{"ListBuckets", 10}, {"GetObject", 10}, {"GetBucketNotification", 1}},
 			},
 			&SCP{
 				Version: "2012-10-17",

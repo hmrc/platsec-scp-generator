@@ -14,7 +14,7 @@
       "service_usage": [
         {
           "event_name": "ListBuckets",
-          "count": 145
+          "count": 10
         },
         {
           "event_name": "GetObject",
