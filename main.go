@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -16,6 +17,12 @@ const (
 	exitFail = 1
 	allow    = "Allow"
 	deny     = "Deny"
+)
+
+var (
+	errUnrecognizedType         = errors.New("policy type can be either 'Allow' or 'Deny'")
+	errTresholdNotPositive      = errors.New("threshold has to be greater than zero")
+	errMissingMandatoryArgument = errors.New("missing mandatory argument")
 )
 
 func main() {
@@ -99,7 +106,7 @@ func parseFlags(args []string, output io.Writer) (config *Config, err error) {
 	flags.Func("file", "path to Platsec AWS Scanner output JSON", func(s string) error {
 		file = s
 		if _, err := os.Stat(file); err != nil {
-			return err
+			return fmt.Errorf("failed to find scanner output file: %w", err)
 		}
 
 		return nil
@@ -108,7 +115,7 @@ func parseFlags(args []string, output io.Writer) (config *Config, err error) {
 	flags.Func("type", "Allow or Deny", func(s string) error {
 		policyType = s
 		if !(policyType == allow || policyType == deny) {
-			return fmt.Errorf("policy type can be either 'Allow' or 'Deny'")
+			return errUnrecognizedType
 		}
 
 		return nil
@@ -117,18 +124,18 @@ func parseFlags(args []string, output io.Writer) (config *Config, err error) {
 	flags.Func("threshold", "integer value which determines Action inclusion/exclusion", func(s string) error {
 		threshold, err = strconv.Atoi(s)
 		if err != nil {
-			return fmt.Errorf("cannot convert threshold to an integer")
+			return fmt.Errorf("cannot convert threshold: %s to an integer: %w", s, err)
 		}
 
 		if threshold <= 0 {
-			return fmt.Errorf("threshold has to be greater than zero")
+			return errTresholdNotPositive
 		}
 
 		return nil
 	})
 
 	if err := flags.Parse(args[1:]); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse flags: %w", err)
 	}
 
 	defaultsOutput := &bytes.Buffer{}
@@ -137,15 +144,16 @@ func parseFlags(args []string, output io.Writer) (config *Config, err error) {
 	flags.PrintDefaults()
 
 	if policyType == "" {
-		return nil, fmt.Errorf("-type is a mandatory argument\n\nUsage of %s:\n%s", args[0], defaultsOutput.String())
+		return nil, fmt.Errorf("%w: -type\n\nUsage of %s:\n%s", errMissingMandatoryArgument, args[0], defaultsOutput.String())
 	}
 
 	if file == "" {
-		return nil, fmt.Errorf("-file is a mandatory argument\n\nUsage of %s:\n%s", args[0], defaultsOutput.String())
+		return nil, fmt.Errorf("%w: -file\n\nUsage of %s:\n%s", errMissingMandatoryArgument, args[0], defaultsOutput.String())
 	}
 
 	if threshold == 0 {
-		return nil, fmt.Errorf("-threshold is a mandatory argument\n\nUsage of %s:\n%s", args[0], defaultsOutput.String())
+		return nil,
+			fmt.Errorf("%w: -threshold\n\nUsage of %s:\n%s", errMissingMandatoryArgument, args[0], defaultsOutput.String())
 	}
 
 	return &Config{policyType: policyType, scannerFile: file, threshold: threshold}, nil
@@ -177,7 +185,7 @@ type SCP struct {
 }
 
 func (p SCP) String() string {
-	jsonData, _ := json.MarshalIndent(p, "", "  ")
+	jsonData, _ := json.MarshalIndent(p, "", "  ") //nolint:errcheck // cannot err for string and []string
 
 	return fmt.Sprintln(string(jsonData))
 }

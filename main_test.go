@@ -11,15 +11,15 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	rc := m.Run()
-	if rc == 0 && testing.CoverMode() != "" {
-		c := testing.Coverage()
-		if c < .99 {
-			fmt.Println("Tests passed but coverage failed at ", c)
-			rc = -1
+	minimumCoverage := 90.0 // %
+
+	if m.Run() == 0 && testing.CoverMode() != "" {
+		realCoverage := testing.Coverage()
+		if realCoverage < minimumCoverage/100 {
+			fmt.Fprintf(os.Stderr, "Tests passed but coverage is below required %.1f%%\n", minimumCoverage)
+			os.Exit(exitFail)
 		}
 	}
-	os.Exit(rc)
 }
 
 func Test_parseFlags(t *testing.T) {
@@ -48,7 +48,8 @@ func Test_parseFlags(t *testing.T) {
 			"invalid file",
 			[]string{"program_name", "-file", "not-really-a-file", "-type", "Allow", "-threshold", "10"},
 			nil,
-			"invalid value \"not-really-a-file\" for flag -file: stat not-really-a-file: no such file or directory",
+			"invalid value \"not-really-a-file\" for flag -file: failed to find scanner output file: " +
+				"stat not-really-a-file: no such file or directory",
 			true,
 		},
 		{
