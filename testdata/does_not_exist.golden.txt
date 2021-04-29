@@ -1,0 +1,8 @@
+invalid value "testdata/does_not_exist.input.json" for flag -file: failed to find scanner output file: stat testdata/does_not_exist.input.json: no such file or directory
+Usage of program_name:
+  -file value
+    	path to Platsec AWS Scanner output JSON
+  -threshold value
+    	integer value which determines Action inclusion/exclusion
+  -type value
+    	Allow or Deny
