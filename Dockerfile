@@ -1,4 +1,4 @@
-FROM golang:1.16-alpine3.13 as base
+FROM golang:1.17-alpine3.14 as base
 RUN apk add --no-cache \
     shadow~=4.8 \
     bash~=5.1
@@ -39,7 +39,7 @@ FROM go AS bash
 ENTRYPOINT [ "/bin/bash" ]
 
 FROM go AS golangci-lint
-ENV GOLANGCI_LINT_VERSION=1.39.0
+ENV GOLANGCI_LINT_VERSION=1.42.1
 SHELL [ "/bin/bash", "-euo", "pipefail", "-c" ]
 RUN wget -qO- "https://github.com/golangci/golangci-lint/releases/download/v${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64.tar.gz" \
     | tar -xzv -C /bin --strip-components=1 "golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64/golangci-lint"

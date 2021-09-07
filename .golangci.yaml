@@ -16,10 +16,12 @@ linters:
   disable:
     - exhaustivestruct
     - funlen
+    - golint
     - interfacer
     - maligned
     - paralleltest
     - scopelint
+    - tagliatelle
     - testpackage
 linters-settings:
   gocritic:
