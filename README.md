@@ -77,6 +77,16 @@ higher than `10`:
 }
 ```
 
+## CI/CD pipeline
+
+### Where can I find a CI/CD pipeline for this code base?
+
+- [PR build job](https://build.tax.service.gov.uk/job/platform-security/job/platsec-scp-generator-pr-builder/)
+- Deployment pipeline: None yet
+
+### How is the CI/CD pipeline configured?
+N/A
+
 ## License
 
 This code is open source software licensed under the [Apache 2.0
