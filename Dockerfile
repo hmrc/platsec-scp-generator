@@ -3,8 +3,8 @@ FROM golang:1.22-alpine3.20 AS base
 RUN apk update && \
     apk upgrade --available
 RUN apk add --no-cache \
-    shadow \
-    bash
+    shadow=~4.15 \
+    bash=~5.2
 # UID of current user who runs the build
 ARG user_id
 # GID of current user who runs the build
