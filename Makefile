@@ -1,7 +1,10 @@
+export DOCKER_BUILDKIT=0
+
 DOCKER = docker run \
 	--interactive \
 	--rm \
 	--volume "${PWD}:${PWD}" \
+	--env GOEXPERIMENT=nocoverageredesign \
 	--workdir "${PWD}"
 
 .PHONY: bash go gofmt golangci-lint
@@ -27,6 +30,11 @@ fmt-check: gofmt
 test: go bash
 	@$(DOCKER) go test -cover .
 	@$(DOCKER) bash e2e.test.sh
+
+.PHONY: coverage
+coverage: go bash
+	@$(DOCKER) go test -cover -covermode=count .
+	@$(DOCKER) go tool cover -html coverage/coverage.out -o coverage/index.html
 
 .PHONY: lint
 lint: golangci-lint

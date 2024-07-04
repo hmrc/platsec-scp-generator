@@ -30,8 +30,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(exitFail)
 	}
+	os.Exit(0)
 }
-
 func run(args []string, stdOut, stdErr io.Writer) error {
 	config, err := parseFlags(args, stdErr)
 	if err != nil {
@@ -57,17 +57,14 @@ type Config struct {
 
 func generatePolicy(config *Config, service string, usage []ServiceUsage) *SCP {
 	actions := []string{}
-
 	for _, record := range usage {
 		if config.policyType == allow && record.Count >= config.threshold {
 			actions = append(actions, fmt.Sprintf("%s:%s", service, record.EventName))
 		}
-
 		if config.policyType == deny && record.Count < config.threshold {
 			actions = append(actions, fmt.Sprintf("%s:%s", service, record.EventName))
 		}
 	}
-
 	return &SCP{
 		Version: "2012-10-17",
 		Statement: Statement{
@@ -77,7 +74,6 @@ func generatePolicy(config *Config, service string, usage []ServiceUsage) *SCP {
 		},
 	}
 }
-
 func loadServiceUsageReport(file string) (service string, usage []ServiceUsage, err error) {
 	content, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -91,14 +87,12 @@ func loadServiceUsageReport(file string) (service string, usage []ServiceUsage, 
 
 	return strings.Split(report[0].Results.Service, ".")[0], report[0].Results.ServiceUsage, nil
 }
-
 func parseFlags(args []string, stdErr io.Writer) (config *Config, err error) {
 	var (
 		policyType string
 		file       string
 		threshold  int
 	)
-
 	flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
 	flags.SetOutput(stdErr)
 
@@ -110,7 +104,6 @@ func parseFlags(args []string, stdErr io.Writer) (config *Config, err error) {
 
 		return nil
 	})
-
 	flags.Func("type", "Allow or Deny", func(s string) error {
 		policyType = s
 		if !(policyType == allow || policyType == deny) {
@@ -119,7 +112,6 @@ func parseFlags(args []string, stdErr io.Writer) (config *Config, err error) {
 
 		return nil
 	})
-
 	flags.Func("threshold", "integer value which determines Action inclusion/exclusion", func(s string) error {
 		threshold, err = strconv.Atoi(s)
 		if err != nil {
@@ -132,29 +124,22 @@ func parseFlags(args []string, stdErr io.Writer) (config *Config, err error) {
 
 		return nil
 	})
-
 	if err := flags.Parse(args[1:]); err != nil {
 		return nil, fmt.Errorf("failed to parse flags: %w", err)
 	}
-
 	defaultsOutput := &bytes.Buffer{}
-
 	flags.SetOutput(defaultsOutput)
 	flags.PrintDefaults()
-
 	if policyType == "" {
 		return nil, fmt.Errorf("%w: -type\n\nUsage of %s:\n%s", errMissingMandatoryArgument, args[0], defaultsOutput.String())
 	}
-
 	if file == "" {
 		return nil, fmt.Errorf("%w: -file\n\nUsage of %s:\n%s", errMissingMandatoryArgument, args[0], defaultsOutput.String())
 	}
-
 	if threshold == 0 {
 		return nil,
 			fmt.Errorf("%w: -threshold\n\nUsage of %s:\n%s", errMissingMandatoryArgument, args[0], defaultsOutput.String())
 	}
-
 	return &Config{policyType: policyType, scannerFile: file, threshold: threshold}, nil
 }
 
@@ -170,7 +155,6 @@ type Report struct {
 		ServiceUsage []ServiceUsage `json:"service_usage"`
 	} `json:"results"`
 }
-
 type Statement struct {
 	Effect   string   `json:"Effect"`
 	Action   []string `json:"Action"`

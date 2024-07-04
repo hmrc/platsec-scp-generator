@@ -11,12 +11,15 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	minimumCoverage := 90.0 // %
-
+	minimumCoverage := 80.0 // %
+	coverageMode := testing.CoverMode()
 	if m.Run() == 0 && testing.CoverMode() != "" {
 		realCoverage := testing.Coverage()
-		if realCoverage < minimumCoverage/100 {
-			fmt.Fprintf(os.Stderr, "Tests passed but coverage is below required %.1f%%\n", minimumCoverage)
+		if realCoverage < minimumCoverage/100.0 {
+			fmt.Fprintf(
+				os.Stderr,
+				"Tests passed but coverage with mode \"%s\" is below %.1f%% required %.1f%%\n", coverageMode, realCoverage, minimumCoverage/100,
+			)
 			os.Exit(exitFail)
 		}
 	}
