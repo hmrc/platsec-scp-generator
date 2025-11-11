@@ -1,7 +1,7 @@
-FROM golang:1.16-alpine3.13 as base
+FROM dockerhub.tax.service.gov.uk/golang:1.25-alpine3.22 AS base
 RUN apk add --no-cache \
-    shadow~=4.8 \
-    bash~=5.1
+    shadow \
+    bash
 # UID of current user who runs the build
 ARG user_id
 # GID of current user who runs the build
