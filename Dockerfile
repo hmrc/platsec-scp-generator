@@ -1,7 +1,7 @@
-FROM dockerhub.tax.service.gov.uk/golang:1.25-alpine3.22 AS base
+FROM dockerhub.tax.service.gov.uk/golang:1.16-alpine3.13 AS base
 RUN apk add --no-cache \
-    shadow \
-    bash
+    shadow~=4.8 \
+    bash~=5.1
 # UID of current user who runs the build
 ARG user_id
 # GID of current user who runs the build
@@ -31,6 +31,7 @@ ENTRYPOINT [ "/usr/local/go/bin/gofmt" ]
 
 FROM base AS go
 ENV CGO_ENABLED=0
+ENV GOPROXY="https://artefacts.tax.service.gov.uk/artifactory/go-packages/"
 COPY go.mod go.sum ${workdir}/
 RUN go mod download
 ENTRYPOINT [ "/usr/local/go/bin/go" ]
